@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Algérie - Portail Employé</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/employee-portal.css">
+    <link rel="stylesheet" href="css/notifications.css">
+</head>
+
+<body>
+    <!-- Flash messages container -->
+    <% if (locals.messages && messages.success) { %>
+        <div class="flash-message" data-type="success">
+            <%= messages.success %>
+        </div>
+    <% } %>
+    <% if (locals.messages && messages.error) { %>
+        <div class="flash-message" data-type="error">
+            <%= messages.error %>
+        </div>
+    <% } %>
+    <div class="sidebar">
+        <div><div class="logo">
+            <img src="imgs/logo.png" alt="logo" width="400">
+            <!-- <div class="logo-text">GestionCongé</div> -->
+              
+
+        <nav>
+            <a href="#dashboard" class="active" data-section="dashboard" onclick="showSection('dashboard')">
+                <i class="fas fa-home"></i>
+                <span>Tableau de Bord</span>
+            </a>
+            <a href="#leave-requests" data-section="leave-requests" onclick="showSection('leave-requests')">
+                <i class="fas fa-calendar-plus"></i>
+                <span>Demande de Congé</span>
+            </a>
+            <a href="#history" data-section="history" onclick="showSection('history')">
+                <i class="fas fa-history"></i>
+                <span>Historique</span>
+            </a>
+            <a href="#documents" data-section="documents" onclick="showSection('documents')">
+                <i class="fas fa-file-alt"></i>
+                <span>Mes Documents</span>
+            </a>
+        </nav>
+        </div>
+        <a href="/logout" class="sidebar-logout-btn">
+            <i class="fas fa-power-off"></i>
+            <span>Déconnexion</span>
+        </a>
+    </div>
+       
+        
+    </div>
+
+    <main>
+        <header>
+            <div class="page-title">
+                <h1 id="currentPageTitle">Tableau de Bord</h1>
+            </div>
+            <div class="user-info">
+                
+                <div class="notifications">
+                    <div class="notifications-icon">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">
+                            <%= notifications ? notifications.filter(n => !n.lu).length : 0 %>
+                        </span>
+                    </div>
+                    <div class="notifications-dropdown">
+                        <div class="notifications-header">
+                            <h3>Notifications</h3>
+                            <span class="mark-all-read" onclick="markAllNotificationsAsRead()">Tout marquer comme lu</span>
+                        </div>
+                        <div class="notifications-list">
+                            <% if (notifications && notifications.length > 0) { %>
+                                <% notifications.forEach(function(notif) { %>
+                                    <div class="notification-item <%= !notif.lu ? 'unread' : '' %>" 
+                                         data-type="<%= notif.type %>" 
+                                         data-id="<%= notif.id %>">
+                                        <div class="notification-icon">
+                                            <% if (notif.type === 'leave_request') { %>
+                                                <i class="fas <%= notif.etat === 1 ? 'fa-check-circle' : 'fa-times-circle' %>"></i>
+                                            <% } else { %>
+                                                <i class="fas fa-file-alt"></i>
+                                            <% } %>
+                                        </div>
+                                        <div class="notification-content">
+                                            <div class="notification-title">
+                                                <% if (notif.type === 'leave_request') { %>
+                                                    Demande de congé <%= notif.etat === 1 ? 'approuvée' : 'refusée' %>
+                                                <% } else { %>
+                                                    Nouveau rapport disponible
+                                                <% } %>
+                                            </div>
+                                            <div class="notification-message">
+                                                <% if (notif.type === 'leave_request') { %>
+                                                    Votre demande de congé du 
+                                                    <%= new Date(notif.date_debut).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) %> 
+                                                    au 
+                                                    <%= new Date(notif.date_fin).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) %> 
+                                                    a été <%= notif.etat === 1 ? 'approuvée' : 'refusée' %>.
+                                                    <% if (notif.commentaire) { %>
+                                                        <br><strong>Commentaire:</strong> <%= notif.commentaire %>
+                                                    <% } %>
+                                                <% } else { %>
+                                                    Un nouveau rapport a été ajouté.
+                                                    <% if (notif.commentaire) { %>
+                                                        <br><%= notif.commentaire %>
+                                                    <% } %>
+                                                <% } %>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            <% } else { %>
+                                <div class="notification-empty">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>Aucune notification</p>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+                <div class="profile">
+                    <img src="<%= avatarUrl %>" alt="Profile">
+                    <div class="profile-info">
+                        <span class="name">
+                            <%=user.nomcomplet%>
+                        </span>
+                        <span class="role">
+                            <%= fonction.nom %>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section active">
+            <!-- Sliding Notification Popup for Dashboard -->
+            <div id="leaveSuccessPopup" class="slide-popup">
+    <div class="popup-icon"><i class="fas fa-check"></i></div>
+    <span>Votre demande a été envoyée</span>
+</div>
+            <div class="dashboard-header">
+                <div class="profile-summary">
+                    <div class="profile-avatar">
+                        <img src="<%= avatarUrl %>" alt="Profile" id="profileImage">
+                        <input type="file" id="profilePictureInput" accept="image/*" style="display: none;">
+                        <button class="change-avatar-btn"
+                            onclick="document.getElementById('profilePictureInput').click()">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                    </div>
+                    <div class="profile-info-header">
+                        <h2>
+                            <%=user.nomcomplet%>
+                        </h2>
+                        <p>
+                            <%= fonction.nom %>
+                        </p>
+                        <p>
+                            <%= user.matricule %>
+                        </p>
+                        <div class="profile-info-grid">
+                            <div class="info-group">
+                                <label>Email Professionnel</label>
+                                <p>
+                                    <%= user.email %>
+                                </p>
+                            </div>
+                            <div class="info-group">
+                                <label>Téléphone</label>
+                                <p>
+                                    <%= user.phone %>
+                                </p>
+                            </div>
+                            <div class="info-group">
+                                <label>Département</label>
+                                <p>
+                                    <%= depart.departement_nom %>
+                                </p>
+                            </div>
+                            <div class="info-group">
+                                <label>Manager</label>
+                                <p>
+                                    <% resultM.forEach(user=> { %>
+                                        <%= user.nomcomplet %>
+                                            <% }); %>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>Congés Disponibles </h3>
+                        <p>
+                            <%= allemployeesinfo[0]?.jours_dispo || 0 %> jours
+                        </p>
+                        
+                        <small>Année <%= new Date().getFullYear() %></small>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>En Attente</h3>
+                        <p>
+                            <%= demandes ? demandes.filter(d=> d.etat === 0).length : 0 %> demandes
+                        </p>
+                        <small>Mise à jour: aujourd'hui</small>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>Congés Pris</h3>
+                        <p>
+                            <%= allemployeesinfo[0]?.jours_pris || 0 %> jours
+                        </p>
+                        
+                        <small>Cette année</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="grid-item recent-activity">
+                    <h2>Activité Récente</h2>
+                    <div class="activity-list">
+                        <% activityRecent.forEach(function(activity) { %>
+                            <div class="activity-item" data-id='<%= activity.id %>'>
+                                <div class="activity-content">
+                                    <div class="activity-icon <%= activity.etat === 1 ? 'approved' : (activity.etat === 0 ? 'pending' : 'rejected') %>">
+                                        <i class="fas <%= activity.etat === 1 ? 'fa-check-circle' : (activity.etat === 0 ? 'fa-clock' : 'fa-times-circle') %>"></i>
+                                    </div>
+                                    <div class="activity-details">
+                                        <h4><%= activity.etat === 1 ? 'Congé approuvé' : activity.etat === 0 ? 'Nouvelle demande' : 'Demande refusée' %></h4>
+                                        <p><%= activity.nature %></p>
+                                        <small>
+                                            du <%= new Date(activity.date_debut).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' }) %>
+                                            au <%= new Date(activity.date_fin).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' }) %>
+                                        </small>
+                                    </div>
+                                </div>
+                                <% if (activity.etat === 0) { %>
+                                    <button class="delete-demande" data-id='<%= activity.id %>' title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                <% } %>
+                            </div>
+                        <% }); %>
+                    </div>
+                    <div class="activity-pagination-controls"></div>
+                </div>
+
+                <div class="grid-item calendar-preview">
+                    <div class="calendar-header">
+                        <h2>Calendrier des Congés</h2>
+                        <div class="calendar-nav">
+                            <button class="calendar-nav-btn prev-month">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span class="current-month">Mars 2025</span>
+                            <button class="calendar-nav-btn next-month">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="calendar-widget" id="calendarWidget">
+                        <div class="calendar-weekdays">
+                            <div>Lun</div>
+                            <div>Mar</div>
+                            <div>Mer</div>
+                            <div>Jeu</div>
+                            <div>Ven</div>
+                            <div>Sam</div>
+                            <div>Dim</div>
+                        </div>
+                        <div class="calendar-days" id="calendarDays">
+                            <!-- Days will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="calendar-legend">
+                        <div class="legend-item">
+                            <div class="legend-color today"></div>
+                            <span>Aujourd'hui</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color approved"></div>
+                            <span>Congé Approuvé</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color pending"></div>
+                            <span>En Attente</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color rejected"></div>
+                            <span>Congé Refusé</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Leave Request Section -->
+<section id="leave-requests" class="section">
+            <div class="leave-request-container">
+                <div class="leave-form-section">
+                    <h2>Nouvelle Demande de Congé</h2>
+                    <form id="leaveRequestForm" class="leave-form" onsubmit="return false;" autocomplete="off">
+                        <div class="form-group">
+                            <label>Type de Congé</label>
+                            <select name="nature" required>
+                                <option value="">Sélectionner le type</option>
+                                <option value="Congé Payé">Congé Payé</option>
+                                <option value="Congé Non Payé">Congé Non Payé</option>
+                                <option value="Congé Exceptionneles">Congé Exceptionneles</option>
+                                <option value="Congé Annuels">Congé Annuels</option>
+                            </select>
+                        </div>
+                        <div class="form-group motif-container" style="display:none;">
+                                    <label for="motif">Motif</label>
+                                    <select name="motif" id="motif" required>
+                                        <option value="">Sélectionner le Motif</option>
+
+                                        <optgroup label="Décès">
+                                        <option value="deces_proches">Decés Proches</option>
+                                        <option value="deces_enfant">Decés Enfant</option>
+                                        </optgroup>
+
+                                        <optgroup label="Mariage">
+                                        <option value="mariage_enfant">mariage Enfant</option>
+                                        <option value="mariage">Mariage</option>
+                                        </optgroup>
+
+                                        <option value="naissance">Naissance</option>
+                                        </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Date de Début</label>
+                                <input type="date" name="date_debut" id="date_debut" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Date de Fin</label>
+                                <input type="date" name="date_fin" id="date_fin" required>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">
+                            <i class="fas fa-paper-plane"></i> Soumettre la Demande
+                        </button>
+                        <!-- live demande script  -->
+                            <script>
+document.addEventListener('DOMContentLoaded', function () {
+    const leaveTypeSpan = document.querySelector('.leave-details > .detail-item:nth-of-type(1) .value');
+    const startDateSpan = document.querySelector('.leave-details .date-range > div:nth-of-type(1) .value');
+    const endDateSpan = document.querySelector('.leave-details .date-range > div:nth-of-type(2) .value');
+    const daysSpan = document.querySelector('.leave-details > .detail-item:nth-of-type(3) .value');
+    const motifSpan = document.querySelector('.leave-details > .detail-item:nth-of-type(4) .value'); // assuming motif also has a .value span
+
+    const natureSelect = document.querySelector('select[name="nature"]');
+    const dateDebutInput = document.querySelector('input[name="date_debut"]');
+    const dateFinInput = document.querySelector('input[name="date_fin"]');
+    const motifSelect = document.querySelector('select[name="motif"]'); // motif is now a select
+
+    function calculateDays(start, end) {
+        if (!start || !end) return '';
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        const diffTime = endDate - startDate;
+        if (diffTime < 0) return '';
+        return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    // Typewriter animation for spans (with blinking cursor)
+    function typeWriterSpan(element, text, speed = 50, callback) {
+        element.textContent = '';
+        let i = 0;
+        const cursorSpan = document.createElement('span');
+        cursorSpan.classList.add('typing-cursor');
+        element.appendChild(cursorSpan);
+
+        function type() {
+            if (i < text.length) {
+                cursorSpan.insertAdjacentText('beforebegin', text.charAt(i));
+                i++;
+                setTimeout(type, speed);
+            } else {
+                cursorSpan.remove();
+                if (callback) callback();
+            }
+        }
+        type();
+    }
+
+    // General function to update a field with animation
+    // For selects, animate the selected option text inside the corresponding span
+    function updateFieldWithAnimation(fieldElement, newValue) {
+        if (!fieldElement) return;
+
+        if (fieldElement.tagName.toLowerCase() === 'textarea') {
+            // If you still have textarea somewhere else, keep fade-in logic here
+            if (fieldElement.value === newValue) return;
+            fieldElement.value = newValue || '—';
+            fieldElement.classList.remove('visible');
+            void fieldElement.offsetWidth; // trigger reflow
+            fieldElement.classList.add('visible');
+        } else if (fieldElement.tagName.toLowerCase() === 'span' || fieldElement.tagName.toLowerCase() === 'div') {
+            // Animate text content inside span or div
+            if (fieldElement.textContent === newValue) return;
+            typeWriterSpan(fieldElement, newValue || '—');
+        }
+    }
+
+    // Update preview fields based on changed input
+    function updatePreview(changedField) {
+        if (changedField === 'nature') {
+            updateFieldWithAnimation(leaveTypeSpan, natureSelect.value || '—');
+        } else if (changedField === 'date_debut') {
+            updateFieldWithAnimation(startDateSpan, dateDebutInput.value || '—');
+        } else if (changedField === 'date_fin') {
+            updateFieldWithAnimation(endDateSpan, dateFinInput.value || '—');
+        } else if (changedField === 'motif') {
+            updateFieldWithAnimation(motifSpan, motifSelect.value || '—');
+        }
+
+        if (changedField === 'date_debut' || changedField === 'date_fin') {
+            const days = calculateDays(dateDebutInput.value, dateFinInput.value);
+            updateFieldWithAnimation(daysSpan, days ? days + ' jour' + (days > 1 ? 's' : '') : '—');
+        }
+    }
+
+    // Event listeners
+    natureSelect.addEventListener('change', () => updatePreview('nature'));
+    dateDebutInput.addEventListener('change', () => updatePreview('date_debut'));
+    dateFinInput.addEventListener('change', () => updatePreview('date_fin'));
+    motifSelect.addEventListener('change', () => updatePreview('motif'));
+
+    // Initial display without animation (direct text)
+    leaveTypeSpan.textContent = natureSelect.value || '—';
+    startDateSpan.textContent = dateDebutInput.value || '—';
+    endDateSpan.textContent = dateFinInput.value || '—';
+    const initialDays = calculateDays(dateDebutInput.value, dateFinInput.value);
+    daysSpan.textContent = initialDays ? initialDays + ' jour' + (initialDays > 1 ? 's' : '') : '—';
+    motifSpan.textContent = motifSelect.value || '—';
+
+    // The rest of your form submit animation and sound code remains unchanged
+    const form = document.getElementById('leaveRequestForm');
+    const infoSection = document.querySelector('.information-section');
+    const submitSound = new Audio('/sounds/movement-swipe-whoosh-4-186578.mp3');
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault(); // Prevent default submission
+
+        submitSound.play().catch(() => {});
+
+        infoSection.classList.add('swipe-up');
+
+        setTimeout(() => {
+            form.submit(); // submit after animation
+        }, 600);
+    });
+});
+                            </script>
+
+
+                            <script>
+                                    document.addEventListener('DOMContentLoaded', function () {
+                                        const dateDebut = document.getElementById('date_debut');
+                                        const dateFin = document.getElementById('date_fin');
+                                        const natureSelect = document.querySelector('select[name="nature"]');
+                                        const motifSelect = document.querySelector('select[name="motif"]'); // assuming motif is a <select>
+                                        const motifContainer = document.querySelector('.motif-container'); // container to show/hide motif
+
+                                        function pad(n) { return n < 10 ? '0' + n : n; }
+
+                                        function getToday() {
+                                            const today = new Date();
+                                            return today.getFullYear() + '-' + pad(today.getMonth() + 1) + '-' + pad(today.getDate());
+                                        }
+
+                                        function getMinDateDebut() {
+                                            const today = new Date();
+                                            today.setDate(today.getDate() + 15);
+                                            return today.getFullYear() + '-' + pad(today.getMonth() + 1) + '-' + pad(today.getDate());
+                                        }
+
+                                        function updateMinDateDebut() {
+                                            if (natureSelect.value === 'Congé Exceptionneles') {
+                                                dateDebut.min = getToday();
+                                            } else {
+                                                dateDebut.min = getMinDateDebut();
+                                            }
+
+                                            // Clear invalid dateDebut and dateFin if needed
+                                            if (dateDebut.value && dateDebut.value < dateDebut.min) {
+                                                alert(`Date de début invalide. La date minimale est ${dateDebut.min}.`);
+                                                dateDebut.value = '';
+                                                dateFin.value = '';
+                                                dateFin.min = dateDebut.min;
+                                            }
+                                        }
+
+                                        // Show motif only if nature is Congé Exceptionneles, else hide and clear it
+                                        function updateMotifVisibility() {
+                                            if (natureSelect.value === 'Congé Exceptionneles') {
+                                                motifContainer.style.display = 'flex';
+                                                motifSelect.required = true;
+                                            } else {
+                                                motifContainer.style.display = 'none';
+                                                motifSelect.value = '';
+                                                motifSelect.required = false;
+                                                dateFin.value = ''; // clear end date if motif hidden
+                                            }
+                                        }
+
+                                        // Function to format date for display (DD/MM/YYYY)
+                                        function formatDateForDisplay(dateString) {
+                                            if (!dateString) return '';
+                                            const [year, month, day] = dateString.split('-');
+                                            return `${day}/${month}/${year}`;
+                                        }
+
+                                        // Function to update the live paper preview
+                                        function updateLivePreview() {
+                                            const typeValue = natureSelect.value || '—';
+                                            const startValue = formatDateForDisplay(dateDebut.value) || '—';
+                                            const endValue = formatDateForDisplay(dateFin.value) || '—';
+                                            const motifValue = motifSelect.options[motifSelect.selectedIndex]?.text || '—';
+                                            
+                                            // Calculate days
+                                            let days = '';
+                                            if (dateDebut.value && dateFin.value) {
+                                                const start = new Date(dateDebut.value);
+                                                const end = new Date(dateFin.value);
+                                                const diffTime = Math.abs(end - start);
+                                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                                                days = diffDays + ' jour' + (diffDays > 1 ? 's' : '');
+                                            }
+
+
+                                            // Update the preview elements
+                                            const previewType = document.querySelector('.leave-details .detail-item:nth-child(1) .value');
+                                            const previewStart = document.querySelector('.date-range > div:nth-child(1) .value');
+                                            const previewEnd = document.querySelector('.date-range > div:nth-child(2) .value');
+                                            const previewDays = document.querySelector('.detail-item:nth-child(3) .value');
+                                            const previewMotif = document.querySelector('.motif-item .value');
+
+                                            if (previewType) previewType.textContent = typeValue;
+                                            if (previewStart) previewStart.textContent = startValue;
+                                            if (previewEnd) previewEnd.textContent = endValue;
+                                            if (previewDays) previewDays.textContent = days || '—';
+                                            if (previewMotif) {
+                                                previewMotif.textContent = natureSelect.value === 'Congé Exceptionneles' ? 
+                                                    (motifValue === 'Sélectionner le Motif' ? '—' : motifValue) : '—';
+                                            }
+                                        }
+
+                                        // Calculate end date based on start date and motif selection
+                                        function updateDateFinBasedOnMotif() {
+                                            console.log('Updating date fin based on motif:', {
+                                                motif: motifSelect.value,
+                                                startDate: dateDebut.value,
+                                                nature: natureSelect.value
+                                            });
+
+                                            if (!dateDebut.value || natureSelect.value !== 'Congé Exceptionneles' || !motifSelect.value) {
+                                                dateFin.value = '';
+                                                updateLivePreview(); // Update preview even when clearing
+                                                return;
+                                            }
+
+                                            const startDate = new Date(dateDebut.value);
+                                            let daysToAdd = 0;
+
+                                            // Map motif values to number of days
+                                            const motifDays = {
+                                                'deces_proches': 3,    // Proches
+                                                'deces_enfant': 5,     // Enfant
+                                                'mariage_enfant': 3,   // Enfant mariage
+                                                'mariage': 5,          // Mariage
+                                                'naissance': 3         // Naissance
+                                            };
+
+
+                                            daysToAdd = motifDays[motifSelect.value] || 0;
+                                            console.log('Days to add:', daysToAdd);
+
+                                            if (daysToAdd > 0) {
+                                                const endDate = new Date(startDate);
+                                                endDate.setDate(startDate.getDate() + daysToAdd - 1); // inclusive count
+                                                
+                                                // Format the date as YYYY-MM-DD
+                                                const yyyy = endDate.getFullYear();
+                                                const mm = String(endDate.getMonth() + 1).padStart(2, '0');
+                                                const dd = String(endDate.getDate()).padStart(2, '0');
+                                                
+                                                dateFin.value = `${yyyy}-${mm}-${dd}`;
+                                                dateFin.min = dateDebut.value; // ensure end date cannot be before start
+                                                
+                                                console.log('Set date fin to:', dateFin.value);
+                                            } else {
+                                                dateFin.value = '';
+                                            }
+                                            
+                                            // Update the live preview
+                                            updateLivePreview();
+                                        }
+
+                                        // Initial setup
+                                        updateMinDateDebut();
+                                        updateMotifVisibility();
+                                        updateDateFinBasedOnMotif();
+
+                                        // Event listeners
+                                        natureSelect.addEventListener('change', function () {
+                                            updateMinDateDebut();
+                                            updateMotifVisibility();
+                                            dateDebut.value = '';
+                                            dateFin.value = '';
+                                            dateFin.min = dateDebut.min;
+                                        });
+
+                                        dateDebut.addEventListener('change', function () {
+                                            if (this.value < this.min) {
+                                                alert(`Vous devez choisir une date au moins ${natureSelect.value === 'Congé Exceptionneles' ? 'aujourd\'hui' : '15 jours après aujourd\'hui'}.`);
+                                                this.value = '';
+                                                dateFin.value = '';
+                                                dateFin.min = this.min;
+                                                return;
+                                            }
+                                            dateFin.value = '';
+                                            dateFin.min = this.value;
+
+                                            // Recalculate end date if motif selected
+                                            if (natureSelect.value === 'Congé Exceptionneles' && motifSelect.value) {
+                                                updateDateFinBasedOnMotif();
+                                            }
+                                        });
+
+                                        motifSelect.addEventListener('change', function () {
+                                            updateDateFinBasedOnMotif();
+                                        });
+
+                                        // Optional: prevent invalid manual input or paste on dateDebut (same as your original script)
+                                        dateDebut.addEventListener('input', function () {
+                                            if (this.value && this.value < this.min) {
+                                                alert(`Vous devez choisir une date au moins ${natureSelect.value === 'Congé Exceptionneles' ? 'aujourd\'hui' : '15 jours après aujourd\'hui'}.`);
+                                                this.value = '';
+                                                dateFin.value = '';
+                                                dateFin.min = this.min;
+                                            }
+                                        });
+
+                                        dateDebut.addEventListener('paste', function () {
+                                            setTimeout(() => {
+                                                if (this.value && this.value < this.min) {
+                                                    alert(`Vous devez choisir une date au moins ${natureSelect.value === 'Congé Exceptionneles' ? 'aujourd\'hui' : '15 jours après aujourd\'hui'}.`);
+                                                    this.value = '';
+                                                    dateFin.value = '';
+                                                    dateFin.min = this.min;
+                                                }
+                                            }, 0);
+                                        });
+
+                                        // Ensure dateFin is not before dateDebut
+                                        dateFin.addEventListener('input', function () {
+                                            if (dateDebut.value && this.value < dateDebut.value) {
+                                                this.value = dateDebut.value;
+                                            }
+                                        });
+                                    });
+                            </script>
+
+
+                    </form>
+                <!-- Sliding Notification Popup -->
+                    <div id="leaveSuccessPopup" class="slide-popup">
+                        <div class="popup-icon"><i class="fas fa-check"></i></div>
+                        <span>Votre demande a été envoyée</span>
+                    </div>
+
+            </div>
+
+
+            <!-- live demande paper  -->
+                <div class="leave-status-section">
+            <div class="paper-stack-lines"></div>
+            <div class="preview-section">
+                <div class="paper-preview">
+
+            <!-- En-tête avec logo à gauche et titre à droite -->
+            <div class="paper-header">
+                <img src="/imgs/logo.png" alt="Air Algérie Logo" class="paper-logo">
+                <div class="paper-title">Demande de Congé</div>
+            </div>
+
+      <!-- Informations employé : Nom et Prénom / Matricule empilés -->
+                <div class="information-section">
+                    <div class="employee-info">
+                    <div class="info-item">
+                        <label>Nom et Prénom :</label>
+                        <span class="value"><%= user.nomcomplet %></span>
+                    </div>
+                    <div class="info-item">
+                        <label>Matricule :</label>
+                        <span class="value"><%= user.matricule %></span>
+                    </div>
+                    </div>
+
+        <!-- Détails de la demande -->
+        <h3>Détails de la Demande</h3>
+
+        <div class="leave-details">
+          <div class="detail-item">
+            <label>Type de Congé :</label>
+            <span class="value"></span>
+          </div>
+
+          <div class="detail-item date-range">
+            <div>
+              <label>Date de Début :</label>
+              <span class="value"></span>
+            </div>
+            <div>
+              <label>Date de Fin :</label>
+              <span class="value"></span>
+            </div>
+          </div>
+
+          <div class="detail-item">
+            <label>Nombre de Jours :</label>
+            <span class="value"></span>
+          </div>
+
+          <div class="detail-item motif-item">
+                <label>Motif :</label>
+                <span class="value"></span>
+            </div>
+
+        </div>
+      </div>
+
+      <div class="paper-divider"></div>
+
+      <div class="paper-footer">
+        Air Algérie - Direction des Ressources Humaines
+      </div>
+    </div>
+  </div>
+                </div>
+
+            </div>
+ </section>
+
+        <!-- History Section -->
+        <section id="history" class="section">
+            <div class="history-container">
+                <div class="history-filters">
+                    <div class="filter-group">
+                        <label>Statut</label>
+                        <select id="statutFilter">
+                            <option value="tous">Tous</option>
+                            <option value="Congé Approuvé">Congé Approuvé</option>
+                            <option value="Congé Refusé">Congé Refusé</option>
+                            <option value="En Attente">En Attente</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Type de Congé</label>
+                        <select id="typeFilter">
+                            <option value="tous">Tous</option>
+                            <option value="Congé Payé">Congé Payé</option>
+                            <option value="Congé Sans Solde">Congé Sans Solde</option>
+                            <option value="Congé Maladie">Congé Maladie</option>
+                            <option value="Congé Maternité">Congé Maternité</option>
+                            <option value="Congé Formation">Congé Formation</option>
+
+                        </select>
+                    </div>
+                    
+                </div>
+                <div class="history-table-container">
+                    <table class="history-table" id="demandesTable">
+                        <thead>
+                            <tr>
+                                <th>Date de Demande</th>
+                                <th>Type</th>
+                                <th>Période</th>
+                                <th>Durée</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                            <% if (demandes && demandes.length> 0) { %>
+                                <% demandes.forEach(demande=> { %>
+
+                                    <tr class="history-row">
+                                        <td>
+                                            <%= demande.date_dmd %>
+                                        </td>
+                                        <td>
+                                            <%= demande.nature %>
+                                        </td>
+
+                                        <td>
+                                            <%= demande.date_debut %> au <%= demande.date_fin %>
+                                        </td>
+                                        <td>
+                                            <%= demande.jour_pres %> jours
+                                        </td>
+                                        <td>
+                                            <% if (demande.etat==1) { %>
+
+                                                <span style="color: lightgreen;">Congé Approuvé</span>
+                                                <% } else if (demande.etat==0) { %>
+
+                                                    <span style="color: orange;">En Attente</span>
+                                                    <% } else { %>
+
+                                                        <span style="color: rgb(248, 37, 37);">Congé Refusé</span>
+                                                        <% } %>
+                                        </td>
+                                    </tr>
+                                    <% }); %>
+                                        <% } else { %>
+                                            <tr>
+                                                <td colspan="5">Aucune demande</td>
+                                            </tr>
+                                            <% } %>
+
+                        </tbody>
+                    </table>
+                    <div class="pagination-controls"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Documents Section -->
+        <section id="documents" class="section">
+            <div class="documents-container">
+                <!-- Tabs Navigation -->
+                <div class="documents-tabs">
+                    <button class="tab-btn active" data-tab="documents-tab">Documents de Congé</button>
+                    <button class="tab-btn" data-tab="rapports-tab">Rapports</button>
+                </div>
+
+                <!-- Documents Tab -->
+                <div id="documents-tab" class="tab-content active">
+                    <div class="documents-header">
+                        <h2>Mes Documents de Congé</h2>
+                        <button class="upload-btn">
+                            <i class="fas fa-upload"></i> Télécharger un Document
+                        </button>
+                    </div>
+                    <div class="documents-grid" id="documentsGrid">
+                        <% if (typeof documents !== 'undefined' && documents.length > 0) { %>
+                            <% documents.forEach(function(doc) { %>
+                                <div class="document-card">
+                                    <div class="document-icon">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </div>
+                                    <div class="document-info">
+                                        <h3>Attestation de Congé</h3>
+                                        <div class="document-meta">
+                                            <span><i class="fas fa-calendar"></i> <%= doc.date_debut %> - <%= doc.date_fin %></span>
+                                            <span><i class="fas fa-clock"></i> <%= doc.jour_pres %> jours</span>
+                                            <span><i class="fas fa-tag"></i> <%= doc.nature %></span>
+                                        </div>
+                                    </div>
+                                    <div class="document-actions">
+                                        <a href="/view-document/<%= doc.id %>" target="_blank" class="btn-view-doc" title="Voir le document"><i class="fas fa-eye"></i></a>
+                                        <% if (doc.document_generated) { %>
+                                            <a href="/download-document/<%= doc.id %>" class="btn-download-doc" title="Télécharger"><i class="fas fa-download"></i></a>
+                                        <% } else { %>
+                                            <button class="btn-generate-doc" data-id="<%= doc.id %>" title="Générer le document"><i class="fas fa-file-alt"></i></button>
+                                        <% } %>
+                                        <button class="btn-delete-doc" data-id="<%= doc.id %>" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                        <div class="empty-documents-state">
+                            <i class="fas fa-folder-open"></i>
+                            <p>Aucun document de congé disponible</p>
+                            <small>Vos documents de congé apparaîtront ici</small>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- Rapports Tab -->
+                <div id="rapports-tab" class="tab-content">
+                    <div class="documents-header">
+                        <h2>Mes Rapports</h2>
+                    </div>
+                    <div class="documents-grid" id="rapportsGrid">
+                        <% if (typeof rapports !== 'undefined' && rapports.length > 0) { %>
+                            <% rapports.forEach(function(rapport) { %>
+                                <div class="document-card">
+                                    <div class="document-icon">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                    <div class="document-info">
+                                        <h3><%= rapport.titre || 'Rapport' %></h3>
+                                        <div class="document-meta">
+                                            <span><i class="fas fa-calendar"></i> <%= new Date(rapport.date_creation).toLocaleDateString('fr-FR') %></span>
+                                            <% if (rapport.type_rapport) { %>
+                                                <span><i class="fas fa-tag"></i> <%= rapport.type_rapport %></span>
+                                            <% } %>
+                                        </div>
+                                        <% if (rapport.description) { %>
+                                            <p class="document-description"><%= rapport.description %></p>
+                                        <% } %>
+                                    </div>
+                                    <div class="document-actions">
+                                        <% if (rapport.fichier_url) { %>
+                                            <a href="<%= rapport.fichier_url %>" target="_blank" class="btn-view-doc" title="Voir le rapport"><i class="fas fa-eye"></i></a>
+                                            <a href="<%= rapport.fichier_url %>" download class="btn-download-doc" title="Télécharger le rapport"><i class="fas fa-download"></i></a>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                        <div class="empty-documents-state">
+                            <i class="fas fa-file-alt"></i>
+                            <p>Aucun rapport disponible</p>
+                            <small>Vos rapports apparaîtront ici</small>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+
+            // Update navigation links
+            document.querySelectorAll('nav a').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-section') === sectionId) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Update page title
+            const pageTitle = document.getElementById('currentPageTitle');
+            const activeLink = document.querySelector(`nav a[data-section="${sectionId}"] span`);
+            if (activeLink) {
+                pageTitle.textContent = activeLink.textContent;
+            }
+        }
+
+        // Initialize first section
+        document.addEventListener('DOMContentLoaded', () => {
+            showSection('dashboard');
+        });
+    </script>
+    <script>
+        window.demandes = <%- JSON.stringify(demandes) %>;
+
+        // Tab switching functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons and contents
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+
+                    // Add active class to clicked button
+                    button.classList.add('active');
+
+                    // Show corresponding tab content
+                    const tabId = button.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        });
+      </script>
+
+
+<!-- <script>
+    // Handle delete demande
+    document.addEventListener('DOMContentLoaded', function() {
+        // Delete demande functionality
+        document.addEventListener('click', async function(e) {
+            if (e.target.closest('.delete-demande') || e.target.classList.contains('fa-trash')) {
+                const button = e.target.closest('.delete-demande');
+                const demandeId = button.getAttribute('data-id');
+                
+                if (confirm('Êtes-vous sûr de vouloir supprimer cette demande ? Cette action est irréversible.')) {
+                    try {
+                        const response = await fetch(`/demandes/${demandeId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (response.ok) {
+                            // Remove the activity item from the DOM
+                            const activityItem = button.closest('.history-row');
+                            activityItem.style.opacity = '0';
+                            setTimeout(() => {
+                                activityItem.remove();
+                                // Show a success message
+                                showNotification('Demande supprimée avec succès', 'success');
+                            }, 300);
+                        } else {
+                            const error = await response.json();
+                            throw new Error(error.message || 'Erreur lors de la suppression de la demande');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting demande:', error);
+                        showNotification(error.message || 'Une erreur est survenue', 'error');
+                    }
+                }
+            }
+        });
+
+        // Helper function to show notifications
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    });
+    </script> -->
+    
+    <!-- <script src="/js/sample-data.js"></script> -->
+    <script src="/js/notifications.js"></script>
+    <script src="/js/employee-portal.js"></script>
+    <!-- Remove employee-portal-notif-fix.js as it's no longer needed -->
+    <!-- <script src="/js/employee-pagination.js"></script> -->
+    <style>
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        transform: translateX(120%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+    }
+
+    .notification.show {
+        transform: translateX(0);
+    }
+
+    .notification.success {
+        background-color: #4CAF50;
+    }
+
+    .notification.error {
+        background-color: #f44336;
+    }
+
+    .notification.info {
+        background-color: #2196F3;
+    }
+
+    .activity-item, .history-row {
+        transition: opacity 0.3s ease;
+    }
+
+    .delete-demande {
+        background: none;
+        border: none;
+        color: #f44336;
+        cursor: pointer;
+        padding: 5px;
+        transition: color 0.3s ease;
+    }
+
+    .delete-demande:hover {
+        color: #d32f2f;
+    }
+
+    /* Document delete button styles */
+    .btn-delete-doc {
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+
+    .btn-delete-doc:hover {
+        background: #dc3545;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .document-card {
+        transition: opacity 0.3s ease;
+    }
+
+    /* Modern Document Section Styles */
+    .documents-container {
+        padding: 2rem;
+        background: #f8f9fa;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    }
+
+    .documents-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid rgba(227, 0, 27, 0.1);
+    }
+
+    .documents-header h2 {
+        font-size: 1.75rem;
+        color: #1a1a1a;
+        font-weight: 600;
+        margin: 0;
+        position: relative;
+        padding-left: 1rem;
+    }
+
+    .documents-header h2::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 24px;
+        background: linear-gradient(to bottom, #e3001b, #ff4d4d);
+        border-radius: 2px;
+    }
+
+    .upload-btn {
+        background: linear-gradient(135deg, #e3001b, #ff4d4d);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 24px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(227, 0, 27, 0.2);
+    }
+
+    .upload-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(227, 0, 27, 0.3);
+    }
+
+    .upload-btn i {
+        font-size: 1.1rem;
+    }
+
+    .documents-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+        padding: 0.5rem;
+    }
+
+    .document-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .document-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #e3001b, #ff4d4d);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .document-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .document-card:hover::before {
+        opacity: 1;
+    }
+
+    .document-icon {
+        text-align: center;
+        margin-bottom: 1.25rem;
+    }
+
+    .document-icon i {
+        font-size: 2.5rem;
+        color: #e3001b;
+        background: rgba(227, 0, 27, 0.1);
+        padding: 1rem;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .document-card:hover .document-icon i {
+        transform: scale(1.1);
+        background: rgba(227, 0, 27, 0.15);
+    }
+
+    .document-info h3 {
+        font-size: 1.25rem;
+        color: #1a1a1a;
+        margin: 0 0 1rem;
+        text-align: center;
+        font-weight: 600;
+    }
+
+    .document-meta {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .document-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #4a5568;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .document-meta span:last-child {
+        margin-bottom: 0;
+    }
+
+    .document-meta i {
+        color: #e3001b;
+        font-size: 1rem;
+    }
+
+    .document-actions {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .document-actions a,
+    .document-actions button {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+    .btn-view-doc {
+        background: rgba(0, 43, 92, 0.1);
+        color: #002b5c;
+    }
+
+    .btn-view-doc:hover {
+        background: #002b5c;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .btn-download-doc {
+        background: rgba(227, 0, 27, 0.1);
+        color: #e3001b;
+    }
+
+    .btn-download-doc:hover {
+        background: #e3001b;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .btn-delete-doc {
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+
+    .btn-delete-doc:hover {
+        background: #dc3545;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .empty-documents-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 3rem;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    }
+
+    .empty-documents-state i {
+        font-size: 3rem;
+        color: #e3001b;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-documents-state p {
+        font-size: 1.25rem;
+        color: #1a1a1a;
+        margin: 0 0 0.5rem;
+        font-weight: 500;
+    }
+
+    .empty-documents-state small {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .documents-container {
+            padding: 1rem;
+        }
+
+        .documents-header {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .documents-header h2::before {
+            display: none;
+        }
+
+        .documents-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    </style>
+
+    <script>
+        // Handle document deletion and generation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Existing delete document code...
+
+            // Handle document generation
+            document.addEventListener('click', async function(e) {
+                if (e.target.closest('.btn-generate-doc') || e.target.classList.contains('fa-file-alt')) {
+                    const button = e.target.closest('.btn-generate-doc');
+                    const docId = button.getAttribute('data-id');
+                    
+                    try {
+                        button.disabled = true;
+                        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                        
+                        const response = await fetch(`/generate-document/${docId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            // Replace generate button with download button
+                            const downloadBtn = document.createElement('a');
+                            downloadBtn.href = `/download-document/${docId}`;
+                            downloadBtn.className = 'btn-download-doc';
+                            downloadBtn.title = 'Télécharger';
+                            downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+                            button.parentNode.replaceChild(downloadBtn, button);
+                            
+                            showNotification('Document généré avec succès', 'success');
+                        } else {
+                            throw new Error(data.message || 'Erreur lors de la génération du document');
+                        }
+                    } catch (error) {
+                        console.error('Error generating document:', error);
+                        showNotification(error.message || 'Une erreur est survenue', 'error');
+                        button.disabled = false;
+                        button.innerHTML = '<i class="fas fa-file-alt"></i>';
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

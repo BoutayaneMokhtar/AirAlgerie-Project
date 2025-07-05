@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Algérie - Portail Sous-Directeur</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/sous-director-portal.css">
+</head>
+<body>
+    <% function formatDate(date) { if (!date) return ''; try { if (typeof date === 'string') return date.slice(0,10); if (date instanceof Date) return date.toISOString().slice(0,10); return String(date).slice(0,10); } catch(e) { return ''; } } %>
+    <div class="sidebar">
+        <div class="logo">
+            <img src="/imgs/logo.png" alt="logo" width="400">
+        </div>
+        <nav>
+            <a href="#dashboard" class="active" data-section="dashboard">
+                <i class="fas fa-home"></i>
+                <span>Tableau de Bord</span>
+            </a>
+            <a href="#departments-management" data-section="departments-management">
+                <i class="fas fa-sitemap"></i>
+                <span>Gestion Départements</span>
+            </a>
+            <a href="#sous-director-leave-request" data-section="sous-director-leave-request">
+                <i class="fas fa-calendar-plus"></i>
+                <span>Demande de Congé</span>
+            </a>
+            <a href="#leave-approvals" data-section="leave-approvals">
+                <i class="fas fa-calendar-check"></i>
+                <span>Approbation Congés</span>
+            </a>
+            <a href="#history" data-section="history">
+                <i class="fas fa-history"></i>
+                <span>Historique</span>
+            </a>
+            <a href="#documents" data-section="documents">
+                <i class="fas fa-file-alt"></i>
+                <span>Mes Documents</span>
+            </a>
+            <a href="/logout" class="sidebar-logout-btn" onclick="event.preventDefault(); window.location.href='/logout'">
+                <i class="fas fa-power-off"></i>
+                <span>Déconnexion</span>
+            </a>
+        </nav>
+    </div>
+    <main>
+        <header>
+            <div class="page-title">
+                <h1 id="currentPageTitle">Tableau de Bord</h1>
+            </div>
+            <div class="user-info">
+                <div class="notifications">
+                    <div class="notifications-icon<%= notificationsCount > 0 ? ' has-notifications' : '' %>" id="notificationsBell">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge"><%= notificationsCount %></span>
+                    </div>
+                    <div class="notifications-dropdown" id="notificationsDropdown" style="display: none;">
+                        <% if (notificationsCount > 0) { %>
+                            <div class="notification-item">
+                                <i class="fas fa-clock"></i>
+                                Vous avez <b><%= notificationsCount %></b> demandes en attente à traiter.
+                            </div>
+                        <% } else { %>
+                            <div class="notification-item empty">
+                                <i class="fas fa-inbox"></i>
+                                Aucune nouvelle notification.
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                  var bell = document.getElementById('notificationsBell');
+                  var dropdown = document.getElementById('notificationsDropdown');
+                  bell.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                  });
+                  document.addEventListener('click', function() {
+                    dropdown.style.display = 'none';
+                  });
+                });
+                </script>
+                <div class="profile">
+                    <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(sousDirector ? sousDirector.nomcomplet : '') %>" alt="Profile">
+                    <div class="profile-info">
+                        <span class="name"><%= sousDirector ? sousDirector.nomcomplet : '' %></span>
+                        <span class="role">Sous-Directeur</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section active">
+            <div class="dashboard-header">
+                <div class="profile-summary">
+                    <div class="profile-avatar">
+                        <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(sousDirector ? sousDirector.nomcomplet : '') %>" alt="Profile" id="profileImage">
+                        <input type="file" id="profilePictureInput" accept="image/*" style="display: none;">
+                        <button class="change-avatar-btn" onclick="document.getElementById('profilePictureInput').click()">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                    </div>
+                    <div class="profile-info-header">
+                        <h2><%= sousDirector ? sousDirector.nomcomplet : '' %></h2>
+                        <p>Sous-Directeur</p>
+                        <p>ID Sous-Directeur: <%= sousDirector ? sousDirector.id : '' %></p>
+                        <div class="profile-info-grid">
+                            <div class="info-group">
+                                <label>Email Professionnel</label>
+                                <p><%= sousDirector ? sousDirector.email : '' %></p>
+                            </div>
+                            <div class="info-group">
+                                <label>Téléphone</label>
+                                <p>+213<%= sousDirector && sousDirector.phone ? sousDirector.phone : '' %></p>
+                            </div>
+                            <div class="info-group">
+                                <label>Managers</label>
+                                <p id="dashTeamMemberCount"><%= pagination.totalManagers %> <% if (pagination.totalManagers === 1) { %>manager<% } else { %>managers<% } %></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-details">
+                            <h3>Congés Disponibles</h3>
+                            <p><%= typeof jours_dispo !== 'undefined' ? jours_dispo : 0 %> jours</p>
+                            <small>Année <%= new Date().getFullYear() %></small>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-details">
+                            <h3>Demandes en Attente</h3>
+                            <p id="dashPendingRequestCount"><%= pendingRequestsCount %> demandes</p>
+                            <small>À traiter</small>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-user-clock"></i>
+                        </div>
+                        <div class="stat-details">
+                            <h3>Absences Aujourd'hui</h3>
+                            <p id="dashAbsentTodayCount"><%= typeof absencesTodayCount !== 'undefined' ? absencesTodayCount : 0 %></p>
+                            <small>En congé</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="grid-item pending-requests">
+                        <h2>Demandes à Traiter</h2>
+                        <div class="requests-list" id="pendingRequestsList">
+                            <% if (pendingDemandes && pendingDemandes.length > 0) { %>
+                                <% pendingDemandes.forEach(function(demande) { %>
+                                    <div class="request-card">
+                                        <div class="request-info">
+                                            <div class="employee-info">
+                                                <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(demande.employee_name) %>" 
+                                                     alt="<%= demande.employee_name %>" 
+                                                     class="employee-avatar">
+                                                <div class="employee-details">
+                                            <span class="employee-name"><%= demande.employee_name %></span>
+                                            <span class="request-dates"><%= demande.date_debut ? (demande.date_debut.toISOString ? demande.date_debut.toISOString().slice(0,10) : demande.date_debut) : '' %> - <%= demande.date_fin ? (demande.date_fin.toISOString ? demande.date_fin.toISOString().slice(0,10) : demande.date_fin) : '' %></span>
+                                                </div>
+                                            </div>
+                                            <span class="request-type"><%= demande.nature %></span>
+                                            <span class="request-motif"><%= demande.motif %></span>
+                                        </div>
+                                        <div class="action-buttons">
+                                            <form method="POST" action="/update-etat/<%= demande.id %>">
+                                                <button class="action-btn approve" title="Approuver">
+                                                    <i class="fas fa-check"></i>
+                                                    <span>Approuver</span>
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="/annuler-demande/<%= demande.id %>">
+                                                <button class="action-btn reject" title="Refuser">
+                                                    <i class="fas fa-times"></i>
+                                                    <span>Refuser</span>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            <% } else { %>
+                                <div class="empty-state"><i class="fas fa-inbox"></i><p>Aucune demande à traiter</p></div>
+                            <% } %>
+                        </div>
+                        <div id="pendingRequestsPagination"></div>
+                    </div>
+                    <div class="grid-item team-calendar">
+                        <h2>Calendrier des Congés</h2>
+                        <div class="calendar-preview">
+                            <div class="calendar-header">
+                                <div class="calendar-nav">
+                                    <button class="calendar-nav-btn prev-month" id="prevMonth">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <span class="current-month" id="currentMonth"></span>
+                                    <button class="calendar-nav-btn next-month" id="nextMonth">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="calendar-widget" id="calendarWidget" data-leave-requests='<%- JSON.stringify(sousDirectorDemandes || []).replace(/[ -\u001F\u007F-\u009F]/g, '') %>'>
+                                <div class="calendar-weekdays">
+                                    <div>Lun</div>
+                                    <div>Mar</div>
+                                    <div>Mer</div>
+                                    <div>Jeu</div>
+                                    <div>Ven</div>
+                                    <div>Sam</div>
+                                    <div>Dim</div>
+                                </div>
+                                <div class="calendar-days" id="calendarDays">
+                                    <!-- Days will be populated by JavaScript -->
+                                </div>
+                            </div>
+                            <div class="calendar-legend">
+                                <div class="legend-item">
+                                    <div class="legend-color today"></div>
+                                    <span>Aujourd'hui</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color approved"></div>
+                                    <span>Congé Approuvé</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color pending"></div>
+                                    <span>En Attente</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color rejected"></div>
+                                    <span>Congé Refusé</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Team Management Section (Managers) -->
+        <section id="team-management" class="section">
+            <div class="team-container">
+                <div class="team-header">
+                    <h2>Gestion des Managers</h2>
+                    <div class="team-actions"></div>
+                </div>
+                <div class="team-overview">
+                    <div class="overview-card">
+                        <div class="overview-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="overview-details">
+                            <h3>Managers</h3>
+                            <p id="dashTeamMemberCount"><%= pagination.totalManagers %> <% if (pagination.totalManagers === 1) { %>manager<% } else { %>managers<% } %></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="team-management">
+                    <!-- Filters Section -->
+                    <div class="filters-section">
+                        <div class="search-filter">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchEmployee" placeholder="Rechercher un manager...">
+                        </div>
+                        <div class="filters-group">
+                            <div class="filter-item">
+                                <select id="departmentFilter" class="filter-select">
+                                    <option value="">Département</option>
+                                </select>
+                            </div>
+                            <div class="filter-item">
+                                <select id="teamStatusFilter" class="filter-select">
+                                    <option value="">Statut</option>
+                                    <option value="actif">Actif</option>
+                                    <option value="conge">Congé</option>
+                                </select>
+                            </div>
+                            <div class="filter-item">
+                                <select id="roleFilter">
+                                    <option value="">Poste</option>
+                                    <option value="Manager">Manager</option>
+                                </select>
+                            </div>
+                            <button class="reset-filters" id="resetFilters">
+                                <i class="fas fa-redo-alt"></i> Réinitialiser
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Team Table -->
+                    <div class="team-table-container">
+                        <table class="team-table">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <div class="th-content">
+                                            Manager
+                                            <i class="fas fa-sort"></i>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="th-content">
+                                            Département
+                                            <i class="fas fa-sort"></i>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="th-content">
+                                            Poste
+                                            <i class="fas fa-sort"></i>
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="teamTableBody">
+                                <!-- Table content will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination -->
+                    <div class="pagination">
+                        <button class="pagination-btn" id="prevPage">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <div class="page-numbers" id="pageNumbers">
+                            <!-- Page numbers will be populated by JavaScript -->
+                        </div>
+                        <button class="pagination-btn" id="nextPage">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Departments Management Section -->
+        <section id="departments-management" class="section">
+            <div class="departments-container">
+                <div class="section-header">
+                    <h2>Gestion des Départements - <%= sousDirector.sous_direction_nom || 'Ma Sous-Direction' %></h2>
+                    <div class="header-actions">
+                        <div class="search-filter">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchDepartment" placeholder="Rechercher un département...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="departments-grid">
+                    <% if (departments && departments.length > 0) { %>
+                        <% departments.forEach(function(dept) { %>
+                            <div class="department-card">
+                                <div class="department-header">
+                                    <div class="department-info">
+                                        <h3><%= dept.nom.split('/').pop() %></h3>
+                                        <span class="employee-count">
+                                            <%= dept.employee_count || 0 %> employé<%= (dept.employee_count || 0) !== 1 ? 's' : '' %>
+                                        </span>
+                                    </div>
+                                    <div class="department-actions">
+                                        <button class="expand-btn" title="Voir les employés">
+                                            <i class="fas fa-chevron-down"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="department-content" style="display: none;">
+                                    <div class="department-stats">
+                                        <div class="stat">
+                                            <span class="label">Managers</span>
+                                            <span class="value"><%= dept.manager_count || 0 %></span>
+                                        </div>
+                                        <div class="stat">
+                                            <span class="label">Employés</span>
+                                            <span class="value"><%= dept.employee_count || 0 %></span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="department-employees">
+                                     
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="empty-state">
+                            <i class="fas fa-building"></i>
+                            <p>Aucun département trouvé</p>
+                        </div>
+                    <% } %>
+                </div>
+
+                <!-- All Employees Table Section -->
+                <div class="all-employees-section">
+                    <div class="section-header">
+                        <h2>Tous les Employés</h2>
+                        <div class="header-actions">
+                            <div class="search-filter">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchAllEmployees" placeholder="Rechercher un employé...">
+                            </div>
+                            <div class="filters-group">
+                                <div class="filter-item">
+                                    <select id="employeeRoleFilter">
+                                        <option value="">Tous les rôles</option>
+                                        <option value="Manager">Managers</option>
+                                        <option value="Employé">Employés</option>
+                                    </select>
+                                </div>
+                                <div class="filter-item">
+                                    <select id="employeeDepartmentFilter">
+                                        <option value="">Tous les départements</option>
+                                        <% departments.filter(dept => dept.sous_direction_id === sousDirector.sous_direction_id).forEach(function(dept) { %>
+                                            <option value="<%= dept.id %>"><%= dept.nom.split('/').pop() %></option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+                                <div class="filter-item">
+                                    <select id="employeeStatusFilter">
+                                        <option value="">Tous les statuts</option>
+                                        <option value="active">Actif</option>
+                                        <option value="on-leave">En congé</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="reset-filters" id="resetEmployeeFilters">
+                                <i class="fas fa-redo-alt"></i> Réinitialiser
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="employees-table-container">
+                        <table class="employees-table">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <div class="th-content">
+                                            Employé
+                                            <i class="fas fa-sort"></i>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="th-content">
+                                            Département
+                                            <i class="fas fa-sort"></i>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="th-content">
+                                            Rôle
+                                            <i class="fas fa-sort"></i>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="th-content">
+                                            Email
+                                            <i class="fas fa-sort"></i>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="th-content">
+                                            Statut
+                                            <i class="fas fa-sort"></i>
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeesTableBody">
+                                <!-- Rows will be rendered by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination">
+                        <button class="pagination-btn" id="prevEmployeePage">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <div class="page-numbers" id="employeePageNumbers">
+                            <!-- Page numbers will be populated by JavaScript -->
+                        </div>
+                        <button class="pagination-btn" id="nextEmployeePage">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Sous-Director Leave Request Section -->
+        <section id="sous-director-leave-request" class="section">
+            <div class="leave-form-section">
+                <h2>Nouvelle Demande de Congé</h2>
+                <form action="/submit-sous-director-leave-request" method="POST" class="leave-form">
+                    <div class="form-group">
+                        <label>Type de Congé</label>
+                        <select name="nature" required>
+                            <option value="">Sélectionner le type</option>
+                            <option value="Congé Payé">Congé Payé</option>
+                            <option value="Congé Sans Solde">Congé Sans Solde</option>
+                            <option value="Congé Maladie">Congé Maladie</option>
+                            <option value="Congé Maternité">Congé Maternité</option>
+                            <option value="Congé Formation">Congé Formation</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date de Début</label>
+                            <input type="date" name="date_debut" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Date de Fin</label>
+                            <input type="date" name="date_fin" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Motif</label>
+                        <textarea name="motif" placeholder="Décrivez brièvement la raison de votre congé..." required></textarea>
+                    </div>
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-paper-plane"></i> Soumettre la Demande
+                    </button>
+                </form>
+            </div>
+        </section>
+        <!-- Leave Approvals Section -->
+        <section id="leave-approvals" class="section">
+            <div class="approvals-container">
+                <div class="approvals-header">
+                    <h2>Gestion des Congés</h2>
+                </div>
+
+                <div class="approval-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon pending">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h4>En Attente</h4>
+                            <p id="pendingCount">-</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon approved">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h4>Approuvés</h4>
+                            <p id="approvedCount">-</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon conflict">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h4>Refusés</h4>
+                            <p id="rejectedCount">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters Section -->
+                <div class="filters-section">
+                    <div class="search-filter">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchLeave" placeholder="Rechercher un manager...">
+                    </div>
+                    <div class="filters-group">
+                        <div class="filter-item">
+                            <select id="typeFilter">
+                                <option value="">Type de Congé</option>
+                                <option value="Congé Payé">Congé Payé</option>
+                                <option value="Congé Sans Solde">Congé Sans Solde</option>
+                                <option value="Congé Maladie">Congé Maladie</option>
+                                <option value="Congé Maternité">Congé Maternité</option>
+                                <option value="Congé Formation">Congé Formation</option>
+                                <option value="Autre">Autre</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <select id="leaveStatusFilter">
+                                <option value="">Statut</option>
+                                <option value="En Attente">En Attente</option>
+                                <option value="Approuvé">Approuvé</option>
+                                <option value="Refusé">Refusé</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <input type="date" id="dateFilter" placeholder="Date">
+                        </div>
+                        <button class="reset-filters" id="resetLeaveFilters">
+                            <i class="fas fa-redo-alt"></i> Réinitialiser
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Leave Requests Table -->
+                <div class="leave-table-container">
+                    <table class="leave-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <div class="th-content">
+                                        Manager
+                                        <i class="fas fa-sort"></i>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="th-content">
+                                        Date Début
+                                        <i class="fas fa-sort"></i>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="th-content">
+                                        Date Fin
+                                        <i class="fas fa-sort"></i>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="th-content">
+                                        Durée
+                                        <i class="fas fa-sort"></i>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="th-content">
+                                        Type
+                                        <i class="fas fa-sort"></i>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="th-content">
+                                        Statut
+                                        <i class="fas fa-sort"></i>
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaveTableBody">
+                            <% if (demandes && demandes.length > 0) { %>
+                                <% demandes.forEach(function(demande) { %>
+                                    <tr>
+                                        <td>
+                                            <div class="employee-info">
+                                                <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(demande.employee_name) %>" alt="<%= demande.employee_name %>" class="employee-avatar">
+                                                <div class="employee-details">
+                                                    <span class="employee-name"><%= demande.employee_name %></span>
+                                                    <span class="employee-email"><%= demande.employee_email %></span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><%= demande.date_debut ? demande.date_debut.toISOString ? demande.date_debut.toISOString().slice(0,10) : demande.date_debut : '' %></td>
+                                        <td><%= demande.date_fin ? demande.date_fin.toISOString ? demande.date_fin.toISOString().slice(0,10) : demande.date_fin : '' %></td>
+                                        <td>
+                                            <% if (typeof demande.jour_pres !== 'undefined' && demande.jour_pres !== null) { %>
+                                                <%= demande.jour_pres %> jours
+                                            <% } else if (demande.date_debut && demande.date_fin) { %>
+                                                <% 
+                                                    var start = new Date(demande.date_debut);
+                                                    var end = new Date(demande.date_fin);
+                                                    var diff = Math.round((end - start) / (1000*60*60*24)) + 1;
+                                                %>
+                                                <%= diff %> jours
+                                            <% } %>
+                                        </td>
+                                        <td><%= demande.nature %></td>
+                                        <td>
+                                            <div style="display: flex; align-items: center; gap: 8px;">
+                                                <% if (demande.etat == 0) { %>
+                                                    <span class="status-badge pending">En Attente</span>
+                                                    <button class="delete-demande-btn" data-id="<%= demande.id %>" title="Supprimer">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                <% } else if (demande.etat === 1) { %>
+                                                    <span class="status-badge approved">Approuvé</span>
+                                                <% } else if (demande.etat === 2) { %>
+                                                    <span class="status-badge rejected">Refusé</span>
+                                                <% } %>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            <% } else { %>
+                                <tr><td colspan="6">Aucune demande trouvée pour les managers.</td></tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination">
+                    <button class="pagination-btn" id="prevLeavePage">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="page-numbers" id="leavePageNumbers">
+                        <span class="card-label">Managers</span>
+                        <span class="page-number active">1</span>
+                    </div>
+                    <button class="pagination-btn" id="nextLeavePage">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+        <!-- History Section -->
+        <section id="history" class="section">
+            <div class="history-container modern-history-card">
+                <div class="section-header modern-history-header">
+                    <h2><i class="fas fa-history"></i> Historique des Congés</h2>
+                </div>
+                <div class="modern-divider"></div>
+                <div class="history-table-container modern-history-table-container">
+                    <table class="history-table modern-history-table" id="historyTable">
+                        <thead>
+                            <tr>
+                                <th>Date de Demande</th>
+                                <th>Type</th>
+                                <th>Période</th>
+                                <th>Durée</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (sousDirectorDemandes && sousDirectorDemandes.length > 0) { %>
+                                <% sousDirectorDemandes.forEach(function(demande) { %>
+                                    <tr class="history-row">
+                                        <td><%= demande.date_dmd ? (demande.date_dmd.toISOString ? demande.date_dmd.toISOString().slice(0,10) : demande.date_dmd) : '' %></td>
+                                        <td><%= demande.nature %></td>
+                                        <td><%= demande.date_debut ? (demande.date_debut.toISOString ? demande.date_debut.toISOString().slice(0,10) : demande.date_debut) : '' %> au <%= demande.date_fin ? (demande.date_fin.toISOString ? demande.date_fin.toISOString().slice(0,10) : demande.date_fin) : '' %></td>
+                                        <td>
+                                            <% if (typeof demande.jour_pres !== 'undefined' && demande.jour_pres !== null) { %>
+                                                <%= demande.jour_pres %> jours
+                                            <% } else if (demande.date_debut && demande.date_fin) { %>
+                                                <% 
+                                                    var start = new Date(demande.date_debut);
+                                                    var end = new Date(demande.date_fin);
+                                                    var diff = Math.round((end - start) / (1000*60*60*24)) + 1;
+                                                %>
+                                                <%= diff %> jours
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <div style="display: flex; align-items: center; gap: 8px;">
+                                                <% if (demande.etat == 0) { %>
+                                                    <span class="status-badge pending">En Attente</span>
+                                                    <button class="delete-demande-btn" data-id="<%= demande.id %>" title="Supprimer">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                <% } else if (demande.etat === 1) { %>
+                                                    <span class="status-badge approved">Approuvé</span>
+                                                <% } else if (demande.etat === 2) { %>
+                                                    <span class="status-badge rejected">Refusé</span>
+                                                <% } %>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            <% } else { %>
+                                <tr><td colspan="5">Aucune demande trouvée.</td></tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                    <div class="pagination-controls modern-pagination" id="historyPagination"></div>
+                </div>
+            </div>
+        </section>
+        <!-- Documents Section -->
+        <section id="documents" class="section">
+            <div class="documents-container">
+                <div class="documents-header">
+                    <!-- <h2>Mes Documents</h2> -->
+                </div>
+                <div class="documents-grid" id="documentsGrid">
+                    <% if (documents && documents.length > 0) { %>
+                        <% documents.forEach(function(doc) { %>
+                            <div class="document-card">
+                                <div class="document-icon">
+                                    <i class="fas fa-file-pdf"></i>
+                                </div>
+                                <div class="document-info">
+                                    <h3>Attestation de Congé</h3>
+                                    <div class="document-meta">
+                                        <span><i class="fas fa-calendar"></i> <%= formatDate(doc.date_debut) %> - <%= formatDate(doc.date_fin) %></span>
+                                        <span><i class="fas fa-clock"></i> <%= doc.jour_pres %> jours</span>
+                                        <span><i class="fas fa-tag"></i> <%= doc.nature %></span>
+                                    </div>
+                                </div>
+                                <div class="document-actions">
+                                    <a href="/view-document/<%= doc.id %>" target="_blank" class="btn-view-doc" title="Voir le document"><i class="fas fa-eye"></i></a>
+                                    <% if (doc.document_generated) { %>
+                                        <a href="/download-document/<%= doc.id %>" class="btn-download-doc" title="Télécharger"><i class="fas fa-download"></i></a>
+                                    <% } %>
+                                    <button class="btn-delete-doc" data-id="<%= doc.id %>" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                    <div class="empty-documents-state">
+                        <i class="fas fa-folder-open"></i>
+                        <p>Aucun document disponible</p>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script>
+        window.leaveRequestsFromServer = <%- JSON.stringify(demandes) %>;
+        window.employeesFromServer = <%- JSON.stringify(employees) %>;
+        window.allEmployeesFromServer = <%- JSON.stringify(employees) %>;
+        window.departmentsFromServer = <%- JSON.stringify(departments) %>;
+        window.absencesTodayCount = <%= typeof absencesTodayCount !== 'undefined' ? absencesTodayCount : 0 %>;
+        window.pendingDemandesFromServer = <%- JSON.stringify(pendingDemandes) %>;
+    </script>
+    <script src="/js/sous-director-portal.js"></script>
+</body>
+</html>

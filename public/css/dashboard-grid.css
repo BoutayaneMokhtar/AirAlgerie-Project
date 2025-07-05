@@ -1,0 +1,136 @@
+/* Dashboard Grid Styles */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
+    background-color: #f4f6f9;
+}
+
+.grid-item {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.grid-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.grid-item h2 {
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+}
+
+/* Top Releases Section */
+.top-releases {
+    grid-column: span 2;
+}
+
+.top-releases-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.top-release-item {
+    background-color: #f9f9fb;
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+}
+
+.top-release-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    background-color: #f0f4f8;
+}
+
+.employee-info {
+    flex-grow: 1;
+}
+
+.employee-info h4 {
+    margin: 0 0 8px 0;
+    color: #2c3e50;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.employee-info p {
+    margin: 0;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.top-release-item .days-badge {
+    background-color: #3498db;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+
+
+/* Acceptance/Refusal Rate Section */
+.acceptance-refusal-rate {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.acceptance-refusal-rate .rate-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.acceptance-refusal-rate .acceptance-rate,
+.acceptance-refusal-rate .refusal-rate {
+    text-align: center;
+    padding: 15px;
+    border-radius: 8px;
+    transition: background-color 0.3s;
+}
+
+.acceptance-refusal-rate .acceptance-rate {
+    background-color: rgba(46, 204, 113, 0.1);
+}
+
+.acceptance-refusal-rate .refusal-rate {
+    background-color: rgba(231, 76, 60, 0.1);
+}
+
+.acceptance-refusal-rate h3 {
+    color: #34495e;
+    margin-bottom: 10px;
+}
+
+.acceptance-refusal-rate p {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.acceptance-refusal-rate #acceptanceRate {
+    color: #2ecc71;
+}
+
+.acceptance-refusal-rate #refusalRate {
+    color: #e74c3c;
+}
+
+/* Responsive Design */
+

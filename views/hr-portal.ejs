@@ -1,0 +1,1947 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Algérie - Portail RH</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/dashboard-grid.css">
+    <link rel="stylesheet" href="css/hr-portal.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <img src="imgs/logo.png" alt="logo" width="400">
+        </div>
+        
+        <nav>
+            <a href="#dashboard" class="active" data-section="dashboard" onclick="showSection('dashboard')">
+                <i class="fas fa-home"></i>
+                <span>Tableau de Bord</span>
+            </a>
+            <a href="#employee-management" data-section="employee-management" onclick="showSection('employee-management')">
+                <i class="fas fa-users-cog"></i>
+                <span>Gestion du Personnel</span>
+            </a>
+            <a href="#leave-management" data-section="leave-management" onclick="showSection('leave-management')">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Gestion des Congés</span>
+            </a>
+            <a href="#departments" data-section="departments" onclick="showSection('departments')">
+                <i class="fas fa-building"></i>
+                <span>Départements</span>
+            </a>
+            <a href="#reports" data-section="reports" onclick="showSection('reports')">
+                <i class="fas fa-chart-line"></i>
+                <span>Rapports & Analytics</span>
+            </a>
+           
+            
+            <a href="/logout" class="sidebar-logout-btn" onclick="event.preventDefault(); window.location.href='/logout'">
+                <i class="fas fa-power-off"></i>
+                <span>Déconnexion</span>
+            </a>
+        
+        </nav>
+        
+    </div>
+
+    <main>
+        <header>
+            <div class="page-title">
+                <h1 id="currentPageTitle">Tableau de Bord RH</h1>
+            </div>
+            <div class="user-info ">
+                <div class="notifications">
+                    <div class="notifications rapport-notifications">
+                        <div class="notifications-icon">
+                            <i class="fas fa-file-alt"></i>
+                            <% if (unreadRapportsCount > 0) { %>
+                                <span class="badge"><%= unreadRapportsCount %></span>
+                            <% } %>
+                        </div>
+                        <div class="notifications-dropdown">
+                            <div class="notifications-header">
+                                <h3>Rapports Récents</h3>
+                                <span class="mark-all-read-rapports" id="markAllReadBtn">Tout marquer comme lu</span>
+                            </div>
+                            <div class="notifications-list">
+                                <% if (rapports && rapports.length > 0) { %>
+                                    <% rapports.forEach(function(rapport) { %>
+                                        <div class="notification-item <%= rapport.lu ? '' : 'unread' %>" data-rapport-id="<%= rapport.id %>">
+                                            <div class="notification-icon">
+                                                <i class="fas fa-file-alt"></i>
+                                            </div>
+                                            <div class="notification-content">
+                                                <div class="notification-header">
+                                                    <span class="notification-title"><%= rapport.titre || 'Nouveau Rapport' %></span>
+                                                    <span class="notification-time">
+                                                        <%= new Date(rapport.date_creation).toLocaleDateString('fr-FR', { 
+                                                            day: '2-digit', 
+                                                            month: 'short', 
+                                                            year: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        }) %>
+                                                    </span>
+                                                </div>
+                                                
+                                            </div>
+                                        </div>
+                                    <% }); %>
+                                <% } else { %>
+                                    <div class="notification-item empty">
+                                        <div class="notification-icon info">
+                                            <i class="fas fa-inbox"></i>
+                                        </div>
+                                        <div class="notification-content">
+                                            <div class="notification-title">Aucun rapport</div>
+                                            <div class="notification-message">Aucun rapport récent.</div>
+                                        </div>
+                                    </div>
+                                <% } %>
+                            </div>
+                            <div class="notifications-footer">
+                                <a href="/rapports" class="view-all">Voir tous les rapports</a>
+                            </div>
+                        </div>
+                    </div>    
+                        
+                        
+                </div>
+                <!-- Rapport Notifications -->
+    
+                <div class="profile">
+                        <div class="profile">
+                            <img src="<%= avatarUrl %>" alt="Profile" id="profileImage">
+                            <!-- <input type="file" id="profilePictureInput" accept="image/*" style="display: none;"> -->
+                            <!-- <button class="change-avatar-btn" onclick="document.getElementById('profilePictureInput').click()">
+                                <i class="fas fa-camera"></i>
+                            </button> -->
+                        </div>
+                        <div class="profile-info">
+                            <span class="name"><%= user.nomcomplet %></span>
+                            <span class="role"><%= fonction ? fonction.nom : '' %> - <%= depart ? depart.departement_nom : '' %></span>
+                        </div>
+                        
+                </div>
+            </div>
+            
+        </header>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section active">
+            <div class="dashboard-header">
+                <div class="welcome-message">
+                  <h2>Bienvenue, <%= user.nomcomplet %>!</h2>
+                  <p>Voici votre aperçu quotidien des activités RH</p>
+                </div>
+                <div class="date-filter">
+                  <div class="date-picker">
+                    <i class="fas fa-calendar-alt"></i>
+                    <select id="monthDropdown">
+                      <% monthlyStats.forEach(c => { %>
+                        <option value="<%= c.key %>"><%= c.mois %></option>
+                      <% }) %>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="stats-container">
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fas fa-user-clock"></i>
+                  </div>
+                  <div class="stat-details">
+                    <h3>Congés en Cours</h3>
+                    <p id="filteredResult">Sélectionnez un mois</p>
+                  </div>
+                </div>
+            
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fas fa-chart-pie"></i>
+                  </div>
+                  <div class="stat-details">
+                    <h3>Taux de Présence</h3>
+                    <p id="tauxPresence">--%</p>
+                    
+                  </div>
+                </div>
+            
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fas fa-clipboard-list"></i>
+                  </div>
+                  <div class="stat-details">
+                    <h3>Demandes en Attente</h3>
+                    <p id="demandesAttente">-- demandes</p>
+                    <div class="stat-trend urgent">
+                      <i class="fas fa-exclamation-circle"></i>
+                      
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dashboard-grid">
+                <!-- Top 5 Releases Section -->
+                <div class="grid-item top-releases">
+                    <h2>Top 5 Employés avec le Plus de Jours Disponibles</h2>
+                    <div class="top-releases-list">
+                      <% if (top5Employees.length > 0) { %>
+                        <% top5Employees.forEach(employee => { %>
+                          <div class="top-release-item">
+                            <div class="employee-info">
+                              <h4><%= employee.nomcomplet %></h4>
+                              <p><%= employee.matricule %></p>
+                            </div>
+                            <div class="days-badge"><%= employee.jours_dispo %> Jours</div>
+                            <% 
+                              const safeName = employee.nomcomplet ? employee.nomcomplet.replace(/"/g, '&quot;') : '';
+                              const employeeId = employee.user_id || '';
+                            %>
+                            <button data-employee-id="<%= employeeId %>" 
+                                    data-employee-name="<%= safeName %>" 
+                                    class="btn-notify send-notification" 
+                                    title="Envoyer une notification de relance"
+                                    <%= !employeeId ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : '' %>>
+                              <i class="fas fa-bell"></i>
+                            </button>
+                            <!-- Debug button -->
+                            <!-- <button class="btn-notify debug-employee" 
+                                    style="margin-left: 5px; background-color: #4CAF50;"
+                                    data-employee='<%= JSON.stringify(employee).replace(/'/g, "\\'") %>'
+                                    title="Afficher les données">
+                              <i class="fas fa-bug"></i>
+                            </button> -->
+                            
+                          </div>
+                          
+                          <% }) %>
+                          <% } else { %>
+                            <p>Pas de résultats</p>
+                            <% } %>
+                        </div>
+                           
+                            </div>
+                            
+                   
+              
+                <!-- Acceptance/Refusal Rate Section -->
+                <div class="grid-item acceptance-refusal-rate">
+                    <h2>Taux d'Acceptations / Refus</h2>
+                    <div class="rate-stats">
+                      <div class="acceptance-rate">
+                        <% if (acceptancetaux.length > 0) { %>
+                            <% acceptancetaux.forEach(accept => { %>
+                        <h3>Acceptations</h3>
+                        <p id="acceptanceRate"><%= accept.taux_acceptation %>%</p>
+                      </div>
+                      <div class="refusal-rate">
+                        <h3>Refus</h3>
+                        <p id="refusalRate"><%= accept.taux_refus %>%</p>
+                      </div>
+                      <% })} %>
+                    </div>
+                  </div>
+                  
+              </div>
+              
+        </section>
+
+        <!-- Employee Management Section -->
+        <section id="employee-management" class="section">
+            <div class="employee-management-container">
+                <div class="section-header">
+                    <h2>Gestion du Personnel</h2>
+                    <div class="header-actions">
+                        
+                        <div class="search-bar">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Rechercher un employé...">
+                            <button class="advanced-search">
+                                <i class="fas fa-sliders-h"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="view-options">
+                    <div class="view-toggle">
+                        <button class="view-btn active" data-view="table">
+                            <i class="fas fa-list"></i> Liste
+                        </button>
+                        <button class="view-btn" data-view="grid">
+                            <i class="fas fa-th-large"></i> Grille
+                        </button>
+                        <button class="view-btn" data-view="card">
+                            <i class="fas fa-id-card"></i> Cartes
+                        </button>
+                    </div>
+                    
+                    
+                    <!-- <div class="filter-tags">
+                        <span class="filter-tag">
+                            Opérations Aériennes
+                            <i class="fas fa-times"></i>
+                        </span>
+                        <span class="filter-tag">
+                            Pilotes
+                            <i class="fas fa-times"></i>
+                        </span>
+                        <button class="clear-filters">
+                            Effacer tous les filtres
+                        </button>
+                    </div> -->
+                </div>
+
+                <div class="employee-filters">
+                    <div class="filter-group">
+                        <label>Directions</label>
+                <select id="directions" name="directions">
+                            <option value="">Tous</option>
+                            <% alldirectionsinfovar.forEach(direction => { %>
+                    <option value="<%= direction.id %>"><%= direction.nom %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Sous-directions</label>
+                <select id="sousdirections" name="sous_direction">
+                            <option value="">Tous</option>
+                                <% allsousdirectionsinfovar.forEach(sous_direction => { %>
+                    <option value="<%= sous_direction.nom %>"><%= sous_direction.nom %></option>
+                                <% }) %>
+                        </select>
+                    </div>
+
+
+                <script>
+                            const sousDirectionsMap = {
+                                <% alldirectionsinfovar.forEach((direction, dirIndex) => { 
+                                const matchingSous = allsousdirectionsinfovar.filter(sous => sous.direction_id == direction.id);
+                                %>
+                                "<%= direction.id %>": [
+                                    <% matchingSous.forEach((sous, sousIndex) => { %>
+                                    "<%= sous.nom %>"<%= sousIndex < matchingSous.length - 1 ? ',' : '' %>
+                                    <% }) %>
+                                ]<%= dirIndex < alldirectionsinfovar.length - 1 ? ',' : '' %>
+                                <% }) %>
+                            };
+
+                            const directionSelect = document.getElementById('directions');
+                            const sousDirectionSelect = document.getElementById('sousdirections');
+
+                            directionSelect.addEventListener('change', function () {
+                                const selectedDirectionId = this.value;
+                                sousDirectionSelect.innerHTML = '<option value="">Tous</option>';
+
+                                if (selectedDirectionId && sousDirectionsMap[selectedDirectionId]) {
+                                // Show sous-directions related to selected direction
+                                sousDirectionsMap[selectedDirectionId].forEach(sous => {
+                                    const opt = document.createElement('option');
+                                    opt.value = sous;
+                                    opt.textContent = sous;
+                                    sousDirectionSelect.appendChild(opt);
+                                });
+                                } else {
+                                // "Tous" selected — show all sous-directions
+                                const allSous = [].concat(...Object.values(sousDirectionsMap));
+                                const uniqueSous = [...new Set(allSous)];
+                                uniqueSous.forEach(sous => {
+                                    const opt = document.createElement('option');
+                                    opt.value = sous;
+                                    opt.textContent = sous;
+                                    sousDirectionSelect.appendChild(opt);
+                                });
+                                }
+                            });
+            </script>
+
+                    
+
+
+                    
+                    <div class="filter-group">
+                        <label>Poste</label>
+                        <!-- display fonction from fonction table  -->
+                        <select id="poste" name="position">
+                            <option value="">Tous</option>
+                            <% allfonctioninfovar.forEach(fonction => { %>
+                                <option value="<%= fonction.nom %>"><%= fonction.nom %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Statut</label>
+                        <select id="status" name="status">
+                            <option value="">Tous</option>
+                            <option value="active">Actif</option>
+                            <option value="leave">En Congé</option>
+                            <option value="training">En Formation</option>
+                        </select>
+                    </div>
+                    
+                    <!-- <button class="filter-more">
+                        <i class="fas fa-plus-circle"></i> Plus de filtres
+                    </button> -->
+                </div>
+
+                <div class="employee-views">
+                    <!-- Table View -->
+                    <div class="employee-view table-view">
+                        <div class="employee-table-container">
+                            <table class="employee-table">
+                                <thead>
+                                    <tr>
+                                        <th><input type="checkbox" class="select-all"></th>
+                                        <th>Employé</th>
+                                        <th>Matricule</th>
+                                        <th>Poste</th>
+                                        <th>Statut</th>
+                                        <th>Directions</th>
+                                        <th>Sous-directions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% allemployeesinfo.forEach((emp, index) => { %>
+                                        <tr class="employee-row" data-index="<%= index %>" data-direction="<%= emp.direction_id %>" 
+                                            data-sousdirection="<%= emp.sous_direction %>" 
+                                            data-poste="<%= emp.fonction %>" 
+                                            data-statut="<%= emp.conge === 1 ? 'En Congé' : 'Actif' %>"
+                                            data-nom="<%= emp.nomcomplet %>" 
+                                            data-matricule="<%= emp.matricule %>" >
+                                            <td><input type="checkbox" class="select-one"></td>
+                                            <td><%= emp.nomcomplet %></td>
+                                            <td><%= emp.matricule %></td>
+                                            <td><%= emp.fonction %></td>
+                                            <td><span class="status-badge <%= emp.conge === 1 ? 'en-conge' : 'actif' %>"><%= emp.conge === 1 ? 'En congé' : 'Actif' %></span></td>
+                                            <td><%= emp.direction %></td>
+                                            <td><%= emp.sous_direction %></td>
+                                        </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                            
+                        </div>
+                    </div>
+                
+                    <!-- Grid View -->
+                    <div class="employee-view grid-view">
+                        <div class="employees-grid">
+                            <% allemployeesinfo.forEach(emp => { %>
+                                <div class="employee-grid-item">
+                                    <div class="employee-grid-header">
+                                        <div class="employee-grid-avatar">
+                                            <i class="fas fa-user fa-3x"></i>
+                                        </div>
+                                        <div class="employee-grid-info">
+                                            <h3><%= emp.nomcomplet %></h3>
+                                            <p><%= emp.fonction %></p>
+                                        </div>
+                                    </div>
+                                    <div class="employee-grid-body">
+                                        <div class="employee-grid-details">
+                                            <div class="detail-item"><span class="detail-label">Matricule:</span><span><%= emp.matricule %></span></div>
+                                            <div class="detail-item"><span class="detail-label">Statut:</span><span class="status-badge <%= emp.conge === 1 ? 'en-conge' : 'actif' %>"><%= emp.conge === 1 ? 'En congé' : 'Actif' %></span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        </div>
+                            
+                    </div>
+                
+                    <!-- Card View -->
+                    <div class="employee-view card-view">
+                        <div class="employees-cards">
+                            <% allemployeesinfo.forEach(emp => { %>
+                                <div class="employee-card-item">
+                                    <div class="employee-card-item-avatar">
+                                        <i class="fas fa-user fa-3x"></i>
+                                    </div>
+                                    <div class="employee-card-item-info">
+                                        <div class="employee-card-item-header">
+                                            <h4><%= emp.nomcomplet %></h4>
+                                        </div>
+                                        <div class="employee-card-item-details">
+                                            <div class="detail-item"><strong>Matriclue:</strong> <%= emp.matricule %></div>
+                                            <div class="detail-item"><strong>Poste:</strong> <%= emp.fonction %></div>
+                                            <div class="detail-item"><strong>Statut:</strong> <span class="status-badge <%= emp.conge === 1 ? 'en-conge' : 'actif' %>"><%= emp.conge === 1 ? 'En congé' : 'Actif' %></span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        </div>
+                       
+                    </div>
+                </div>
+                <div id="pagination-table" class="pagination-controls"></div>
+                
+
+                
+
+                
+            </div>
+
+            
+        </section>
+
+        <!-- Leave Management Section -->
+        <section id="leave-management" class="section">
+            <div class="leave-management-container">
+                <div class="section-header">
+                    <h2>Statistiques Des Congés</h2>
+                    <div class="header-actions">
+                      <label for="natureFilter">Filtrer par Nature:</label>
+                      <select id="natureFilter" onchange="updateNatureStats()">
+                        <option value="">Toutes</option>
+                        <% totalecongeinfo.forEach(n => { %>
+                          <option value="<%= n.nature %>"><%= n.nature %></option>
+                        <% }) %>
+                      </select>
+                    </div>
+                  </div>
+                  
+
+                <div class="leave-overview" id="natureStatsResult" >
+                    
+                        <div class="overview-card">
+                            <div class="card-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3></h3>
+                                <p class="number"></p>
+                                
+                            </div>
+                        </div>
+                    
+                    
+                </div>
+                
+                
+                <!-- traitement de conger  -->
+                 <div class="grid-item pending-requests">
+                    <h2>Demandes à Traiter</h2>
+                    <div class="requests-list">
+                        <% if (leaveRequests && leaveRequests.length > 0) { %>
+                            <% leaveRequests.slice(0, 5).forEach(function(request) { %>
+                                <div class="request-item">
+                                    <div class="request-header">
+                                        <img src="https://ui-avatars.com/api/?name=<%= request.employee_name %>" alt="Employee">
+                                        <div class="request-info">
+                                            <h4><%= request.employee_name %></h4>
+                                            <p><%= request.nature %></p>
+                                        </div>
+                                        <div class="request-date">
+                                            <span><%= request.date_debut_formatted %> - <%= request.date_fin_formatted %></span>
+                                            <small><%= Math.round((new Date(request.date_fin) - new Date(request.date_debut)) / (1000 * 60 * 60 * 24)) %> jours</small>
+                                        </div>
+                                    </div>
+                                    <div class="request-actions">
+                                        <form action="/approve-leave" method="POST" style="display:inline;">
+                                            <input type="hidden" name="requestId" value="<%= request.id %>">
+                                            <button type="submit" class="approve-btn">Approuver</button>
+                                        </form>
+                                        <form action="/reject-leave" method="POST" style="display:inline;">
+                                            <input type="hidden" name="requestId" value="<%= request.id %>">
+                                            <button type="submit" class="reject-btn">Refuser</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <p>Aucune demande de congé à traiter</p>
+                        <% } %>
+                    </div>
+                </div>
+                
+
+                <div class="leave-policies">
+                    <h3>Politiques de Congés</h3>
+                    <div class="policies-grid">
+                        <div class="policy-card">
+                            <div class="policy-header">
+                                <h4>Congés Annuels</h4>
+                                <span class="days">30 jours</span>
+                            </div>
+                            <div class="policy-details">
+                                <p>Congés payés accordés par an</p>
+                                <ul>
+                                    <li>Accumulation mensuelle</li>
+                                    <li>Report max: 10 jours</li>
+                                    <li>Préavis: 2 semaines</li>
+                                </ul>
+                            </div>
+                            
+                        </div>
+                        <div class="policy-card">
+                            <div class="policy-header">
+                                <h4>Congés Maladie</h4>
+                                <span class="days">15 jours</span>
+                            </div>
+                            <div class="policy-details">
+                                <p>Congés pour raison médicale</p>
+                                <ul>
+                                    <li>Justificatif requis</li>
+                                    <li>Extensible sur avis médical</li>
+                                    <li>Préavis: Non requis</li>
+                                </ul>
+                            </div>
+                            
+                        </div>
+                        <div class="policy-card">
+                            <div class="policy-header">
+                                <h4>Congés Exceptionnels</h4>
+                                <span class="days">Variable</span>
+                            </div>
+                            <div class="policy-details">
+                                <p>Événements spéciaux</p>
+                                <ul>
+                                    <li>Mariage: 5 jours</li>
+                                    <li>Naissance: 3 jours</li>
+                                    <li>Décès: 3 jours</li>
+                                </ul>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+            </div>
+
+        </section>
+
+        <!-- Departments Section -->
+        <section id="departments" class="section">
+            <div class="departments-container">
+                
+
+                <div class="section-header">
+                    <h2>Départments</h2>
+                    <div class="header-actions">
+                        <label for="departementFilter">Filtrer par Département:</label>
+                        <div id="filteredResults" class="filtered-results"></div>
+                        <select id="departementDropdown">
+                            <option value="">-- Tous les départements --</option>
+                            <% 
+                              const uniqueDeps = new Set();
+                              totalenatureinfo.forEach(item => {
+                                if (!uniqueDeps.has(item.departement_nom)) {
+                            %>
+                              <option value="<%= item.departement_nom %>"><%= item.departement_nom %></option>
+                            <% 
+                                  uniqueDeps.add(item.departement_nom);
+                                }
+                              });
+                            %>
+                          </select>
+                    </div>
+                </div>
+
+                <div class="leave-overview" id="leaveOverview">
+                    <% totalenatureinfo.forEach(item => { %>
+                        <div class="overview-card">
+                            <div class="card-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3><%= item.nature %> ( <%= item.departement_nom %>)</h3>
+                                <p class="number"><%= item.total %></p>
+                                
+                            </div>
+                        </div>
+                    <% }) %>
+                    
+                </div>
+            </div>
+        </section>
+
+        <!-- Reports Section -->
+        <section id="reports" class="section">
+            <div class="reports-container">
+                <div class="section-header">
+                    <h2>Rapports & Analytics</h2>
+                    
+                </div>
+
+               
+
+                <div class="reports-grid">
+                    <div class="report-card full-width">
+                        <div class="report-header">
+                            <h3>Évolution des Effectifs</h3>
+                            
+                            <!-- Bouton Assistant avec icône -->
+                            <div class="assistant-button-container">
+                                <button class="assistant-button">
+                                    <i class="fas fa-question-circle"></i>
+                                </button>
+                                <div class="assistant-text">
+                                    <p>Ce graphique illustre l'évolution du nombre d'employés dans le temps</p>
+                                </div>
+                            </div>
+                        
+                            <div class="report-controls">
+                                
+                                
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <canvas id="workforceChart"></canvas>
+    <script>
+    window.workforceEvolutionData = <%- JSON.stringify(workforceEvolutionData) %>;
+    </script>
+                        </div>
+                    </div>
+
+                    <div class="report-card">
+    <div class="report-header">
+        <h3>Répartition des Congés par Département</h3>
+
+        <!-- Bouton Assistant avec icône -->
+        <div class="assistant-button-container">
+            <button class="assistant-button">
+                <i class="fas fa-question-circle"></i>
+            </button>
+            <div class="assistant-text">
+                <p>Cette statistique montre la répartition des jours de congé pris par département. Elle permet d'identifier les équipes les plus sollicitées ou en sous-effectif.</p>
+            </div>
+        </div>
+
+        <div class="report-controls">
+            
+            
+        </div>
+    </div>
+
+                                    <div class="chart-container">
+                                        <canvas id="departmentDistributionChart"></canvas>
+                                        <script>
+                                            window.departmentDistributionData = <%- JSON.stringify(departmentDistributionData) %>;
+                                            </script>
+                        </div>
+                    </div>
+
+                   
+                </div>
+
+                <div class="custom-reports">
+                    <div class="section-header">
+                        <h3>Rapports </h3>
+                        
+                    </div>
+                    <div class="reports-table">
+  <table>
+    <thead>
+      <tr>
+        <th>Nom du Rapport</th>
+        <th>Date de Création</th>
+        <th>Type</th>
+        <th>Deposé</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (rapports && rapports.length > 0) { %>
+        <% rapports.forEach(function(rapport, index) { %>
+          <tr data-report-id="<%= rapport.id %>">
+            <!-- titre is an object with content property -->
+            <td><%= rapport.titre %></td>
+
+            <!-- Format date_creation to French date -->
+            <td><%= rapport.date_creation ? new Date(rapport.date_creation).toLocaleDateString('fr-FR') : 'N/A' %></td>
+
+            <td><%= rapport.type || 'N/A' %></td>
+
+            <!-- Deposé: avatar from user session -->
+            <td>
+              <div class="recipients">
+                <% if (user && user.nomcomplet) { %>
+                  <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(user.nomcomplet) %>" alt="<%= user.nomcomplet %>">
+                <% } else { %>
+                  <span>Inconnu</span>
+                <% } %>
+              </div>
+            </td>
+
+            <td>
+              <div class="action-buttons">
+                <button onclick="togglePlayPause(this, '<%= rapport.id %>')" title="Lire" class="btn-action play-pause-btn">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button onclick="openReportModal('<%= rapport.id %>')" title="Consulter" class="btn-action">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+                <button onclick="deleteReport('<%= rapport.id %>')" title="Supprimer" class="btn-action delete-btn">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        <% }); %>
+      <% } else { %>
+        <tr>
+          <td colspan="5">Aucun rapport disponible</td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+
+  
+  
+</div>
+
+<!-- Report Details Modal -->
+<div id="reportModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Détails du Rapport</h3>
+            <button class="modal-close" onclick="closeReportModal()">&times;</button>
+        </div>
+        <div class="report-details">
+            <div class="detail-row">
+                <strong>Titre:</strong>
+                <p id="modalReportTitle"></p>
+            </div>
+            <div class="detail-row">
+                <strong>Date:</strong>
+                <p id="modalReportDate"></p>
+            </div>
+            <div class="detail-row">
+                <strong>Type:</strong>
+                <p id="modalReportType"></p>
+            </div>
+            <div class="detail-row full-width">
+                <strong>Contenu:</strong>
+                <div id="modalReportContent" class="report-content"></div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button onclick="closeReportModal()" class="btn btn-primary">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Notification Button Styles */
+.btn-notify {
+  background: #4a6cf7;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.2em;
+  margin-left: 10px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.btn-notify:hover {
+  color: #e67e22;
+  background-color: rgba(243, 156, 18, 0.1);
+}
+
+/* Loading spinner for the button */
+.btn-notify.loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.btn-notify.loading:after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin: -8px 0 0 -8px;
+  border: 2px solid #f39c12;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Success/Error message styles */
+.notification-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 4px;
+  color: white;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateX(120%);
+  transition: transform 0.3s ease-in-out;
+  max-width: 300px;
+}
+
+.notification-message.show {
+  transform: translateX(0);
+}
+
+.notification-message.success {
+  background-color: #2ecc71;
+}
+
+.notification-message.error {
+  background-color: #e74c3c;
+}
+/* Modal Styles */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0 10px;
+}
+
+.report-details .detail-row {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.report-details .detail-row.full-width {
+    display: block;
+}
+
+.report-content {
+    margin-top: 10px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    border: 1px solid #dee2e6;
+    min-height: 100px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-action {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    margin: 0 2px;
+    color: #6c757d;
+}
+
+.btn-action:hover {
+    color: #0056b3;
+}
+</style>
+
+<script>
+// Store rapports data in window object
+window.rapportsData = <%- JSON.stringify(rapports) || '[]' %>;
+
+// Function to open report modal
+function openReportModal(reportId) {
+    console.log('Opening report with ID:', reportId);
+    
+    // Find the report in the rapports data
+    const report = window.rapportsData.find(r => r.id == reportId);
+    if (!report) {
+        console.error('Report not found:', reportId);
+        return;
+    }
+
+    console.log('Report data:', report);
+
+    // Populate modal with report data
+    document.getElementById('modalReportTitle').textContent = report.titre || 'Sans titre';
+    document.getElementById('modalReportDate').textContent = 
+        report.date_creation ? new Date(report.date_creation).toLocaleDateString('fr-FR') : 'Non spécifiée';
+    document.getElementById('modalReportType').textContent = report.type || 'Non spécifié';
+    
+    // Set the content, handling both string and object with content property
+    const content = typeof report.contenu === 'object' ? 
+        (report.contenu.content || 'Aucun contenu disponible') : 
+        (report.contenu || 'Aucun contenu disponible');
+    
+    document.getElementById('modalReportContent').textContent = content;
+
+    // Show the modal
+    document.getElementById('reportModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+// Function to close report modal
+function closeReportModal() {
+    document.getElementById('reportModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// Close modal when clicking outside the content
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('reportModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeReportModal();
+            }
+        });
+    }
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeReportModal();
+        }
+    });
+});
+// Speech synthesis variables
+let currentUtterance = null;
+let isPlaying = false;
+let currentPlayingButton = null;
+let currentReportId = null;
+
+// Function to toggle play/pause for speech synthesis
+function togglePlayPause(button, reportId) {
+    // If clicking a different button while another is playing, stop the current one
+    if (currentPlayingButton && currentPlayingButton !== button) {
+        stopSpeech();
+        // Reset the previous button's icon
+        if (currentPlayingButton) {
+            const icon = currentPlayingButton.querySelector('i');
+            if (icon) icon.className = 'fas fa-play';
+        }
+    }
+
+    const icon = button.querySelector('i');
+    
+    if (isPlaying && currentReportId === reportId) {
+        // Pause if currently playing this report
+        window.speechSynthesis.pause();
+        isPlaying = false;
+        if (icon) icon.className = 'fas fa-play';
+    } else {
+        // Play or resume
+        currentReportId = reportId;
+        currentPlayingButton = button;
+        
+        // Get the report content
+        const report = window.rapportsData.find(r => r.id == reportId);
+        if (!report) return;
+        
+        const content = typeof report.contenu === 'object' ? 
+            (report.contenu.content || '') : 
+            (report.contenu || '');
+        
+        if (!content) {
+            console.warn('No content to read');
+            return;
+        }
+        
+        // If resuming from pause
+        if (window.speechSynthesis.paused && currentUtterance) {
+            window.speechSynthesis.resume();
+            isPlaying = true;
+            if (icon) icon.className = 'fas fa-pause';
+            return;
+        }
+        
+        // Stop any current speech
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+        }
+        
+        // Create new utterance
+        currentUtterance = new SpeechSynthesisUtterance(content);
+        currentUtterance.lang = 'fr-FR';
+        currentUtterance.pitch = 1;
+        currentUtterance.rate = 1;
+        
+        // Set up event handlers
+        currentUtterance.onend = function() {
+            isPlaying = false;
+            if (icon) icon.className = 'fas fa-play';
+            currentPlayingButton = null;
+            currentReportId = null;
+        };
+        
+        currentUtterance.onerror = function(event) {
+            console.error('Speech synthesis error:', event);
+            isPlaying = false;
+            if (icon) icon.className = 'fas fa-play';
+            currentPlayingButton = null;
+            currentReportId = null;
+        };
+        
+        // Start speaking
+        window.speechSynthesis.speak(currentUtterance);
+        isPlaying = true;
+        if (icon) icon.className = 'fas fa-pause';
+    }
+}
+
+// Function to stop speech synthesis
+function stopSpeech() {
+    if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        isPlaying = false;
+        currentReportId = null;
+        currentPlayingButton = null;
+    }
+}
+
+// Update closeReportModal to stop speech when modal is closed
+function closeReportModal() {
+    document.getElementById('reportModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+    stopSpeech();
+}
+
+</script>
+
+  
+
+                </div>
+            </div>
+            
+        </section>
+
+        
+        <!-- Single Report Modal -->
+      
+      
+    </main>
+
+   
+      
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/hr-portal.js"></script>
+    <script src="js/hr-portal-notif.js"></script>
+<script>
+
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Workforce Evolution Chart
+    if (window.workforceEvolutionData) {
+        const labels = window.workforceEvolutionData.map(row => row.month);
+        const data = window.workforceEvolutionData.map(row => parseInt(row.count));
+
+        // Update chart data if chart already exists
+        if (window.workforceChartInstance) {
+            window.workforceChartInstance.data.labels = labels;
+            window.workforceChartInstance.data.datasets[0].data = data;
+            window.workforceChartInstance.update();
+        }
+    }
+
+    // Department Distribution Chart
+    if (window.departmentDistributionData) {
+        const labels = window.departmentDistributionData.map(row => row.department);
+        const data = window.departmentDistributionData.map(row => parseInt(row.count));
+
+        // Update chart data if chart already exists
+        if (window.departmentChartInstance) {
+            window.departmentChartInstance.data.labels = labels;
+            window.departmentChartInstance.data.datasets[0].data = data;
+            window.departmentChartInstance.update();
+        }
+    }
+
+    // Turnover Rate Chart
+    if (window.turnoverData) {
+        const labels = window.turnoverData.map(row => row.month);
+        const data = window.turnoverData.map(row => parseFloat(row.turnover_rate));
+
+        // Update chart data if chart already exists
+        if (window.turnoverChartInstance) {
+            window.turnoverChartInstance.data.labels = labels;
+            window.turnoverChartInstance.data.datasets[0].data = data;
+            window.turnoverChartInstance.update();
+        }
+    }
+
+    // -------------------------------
+
+    const calculateAverageLeaveDays = (data) => {
+                    return data.map(department => {
+                        const totalLeaveDays = department.leave_days.reduce((acc, curr) => acc + curr, 0);
+                        const averageLeaveDays = totalLeaveDays / department.leave_days.length;
+                        return { department: department.name, averageLeaveDays: averageLeaveDays };
+                    });
+                };
+
+                const ctx = document.getElementById('departmentDistributionChart').getContext('2d');
+                const labels = window.departmentDistributionData.map(row => row.department);
+                const data = window.departmentDistributionData.map(row => parseInt(row.count));
+
+                // Chart initialization with average leave data
+                new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Répartition des Congés',
+                            data: data,
+                            backgroundColor: [
+                                '#1e3a8a', '#c41e3a', '#059669', '#d97706', '#6366f1', '#f59e42', '#a21caf', '#eab308', '#10b981', '#f43f5e'
+                            ]
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+
+                document.addEventListener("DOMContentLoaded", function() {
+    // Function to open the modal
+    function openEditModal() {
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    // Function to close the modal
+    function closeModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    // Attach event listener to the Modifier button
+    const editButton = document.querySelector("button[title='Modifier']");
+    if (editButton) {
+        editButton.addEventListener("click", openEditModal);
+    }
+});
+// sound reader 
+
+let isSpeaking = false;
+let isPaused = false;
+let utterance = null;
+
+function togglePlayPause() {
+    if (!isSpeaking || isPaused) {
+        // Start or resume speaking
+        if (!utterance) {
+            const text = document.getElementById('reportTextarea').value;
+            if (!text.trim()) return;
+            
+            utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'fr-FR';
+            utterance.pitch = 1;
+            utterance.rate = 1;
+            
+            utterance.onend = utterance.onerror = () => {
+                isSpeaking = false;
+                isPaused = false;
+                utterance = null;
+                updateIcon();
+            };
+        }
+        
+        window.speechSynthesis.speak(utterance);
+        if (isPaused) window.speechSynthesis.resume();
+        
+        isSpeaking = true;
+        isPaused = false;
+    } else {
+        // Pause speaking
+        window.speechSynthesis.pause();
+        isPaused = true;
+    }
+    updateIcon();
+}
+
+function updateIcon() {
+    const icon = document.getElementById('playPauseIcon');
+    icon.classList.toggle('fa-play', !isSpeaking || isPaused);
+    icon.classList.toggle('fa-pause', isSpeaking && !isPaused);
+}
+
+
+// Toggle play/pause functionality
+function togglePlayPause() {
+    if (!isSpeaking || isPaused) {
+        // If not speaking or paused, start or resume speaking
+        playText();
+    } else {
+        // If speaking, pause
+        window.speechSynthesis.pause();
+        isPaused = true;
+        updateIcon();
+    }
+}
+
+// Attach the toggle function to the execute button
+document.querySelector("button[title='Exécuter']").addEventListener("click", togglePlayPause);
+
+});
+const statsData = <%- JSON.stringify(monthlyStats) %>;
+
+  const monthDropdown = document.getElementById("monthDropdown");
+  const filteredResult = document.getElementById("filteredResult");
+  const tauxPresenceEl = document.getElementById("tauxPresence");
+  const demandesAttenteEl = document.getElementById("demandesAttente");
+
+  function updateStats(selectedKey) {
+    const found = statsData.find(c => c.key === selectedKey);
+
+    if (found) {
+      filteredResult.innerText = `${found.mois.trim()} : ${found.total_en_conge} personnes`;
+      tauxPresenceEl.innerText = `${found.taux_presence}%`;
+      demandesAttenteEl.innerText = `${found.demandes_en_attente} demandes`;
+    } else {
+      filteredResult.innerText = "Sélectionnez un mois";
+      tauxPresenceEl.innerText = "--%";
+      demandesAttenteEl.innerText = "-- demandes";
+    }
+  }
+
+  monthDropdown.addEventListener("change", () => {
+    updateStats(monthDropdown.value);
+  });
+
+  window.addEventListener("DOMContentLoaded", () => {
+    updateStats(monthDropdown.value);
+
+
+
+document.addEventListener("DOMContentLoaded", function () {
+        const rowsPerPage = 10; // Limit to 10 rows per page
+        const allRows = document.querySelectorAll('.employee-row');
+        const totalRows = allRows.length;
+        const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+        const currentPageSpan = document.getElementById("currentPage");
+        const totalPagesSpan = document.getElementById("totalPages");
+        const prevBtn = document.getElementById("prevPage");
+        const nextBtn = document.getElementById("nextPage");
+
+        let currentPage = 1;
+
+        // Function to show the relevant rows for the current page
+        function updateTableDisplay() {
+            allRows.forEach((row, index) => {
+                row.style.display = index >= (currentPage - 1) * rowsPerPage && index < currentPage * rowsPerPage ? "table-row" : "none";
+            });
+
+            currentPageSpan.textContent = currentPage;
+            totalPagesSpan.textContent = totalPages;
+
+            // Enable/Disable buttons based on the current page
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+        }
+
+        // Event listeners for next/previous buttons
+        prevBtn.addEventListener("click", () => {
+            if (currentPage > 1) {
+                currentPage--;
+                updateTableDisplay();
+            }
+        });
+
+        nextBtn.addEventListener("click", () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateTableDisplay();
+            }
+        });
+
+        // Initialize pagination
+        updateTableDisplay();
+    });
+  });
+
+
+  const totalenatureinfo = <%- JSON.stringify(totalenatureinfo) %>;
+  const overviewCards = document.querySelectorAll('#leaveOverview .overview-card');
+  const departementDropdown = document.getElementById("departementDropdown");
+
+  function filterOverviewCards(departementNom) {
+    console.log('Filtering with:', departementNom);
+    console.log('Total overview cards:', overviewCards.length);
+    
+    overviewCards.forEach(card => {
+      const cardTitleEl = card.querySelector('.card-content h3');
+      console.log('Card title element:', cardTitleEl);
+      
+      if (!cardTitleEl) {
+        console.error('Could not find card title element');
+        return;
+      }
+      
+      const cardTitle = cardTitleEl.textContent.trim();
+      console.log('Card title:', cardTitle);
+      
+      if (!departementNom || cardTitle.toLowerCase().includes(departementNom.toLowerCase())) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  departementDropdown.addEventListener("change", () => {
+    const selectedDep = departementDropdown.value;
+    filterOverviewCards(selectedDep);
+  });
+
+  // Optional: auto-load first option
+  window.addEventListener("DOMContentLoaded", () => {
+    if (departementDropdown.value) {
+      filterOverviewCards(departementDropdown.value);
+    }
+  });
+
+  // Move natureStats and updateNatureStats to global scope
+  const natureStats = <%- JSON.stringify(totalecongeinfo) %>;
+
+  function updateNatureStats() {
+    const selected = document.getElementById('natureFilter').value;
+    const container = document.getElementById('natureStatsResult');
+    container.innerHTML = '';
+
+    const filtered = selected
+      ? natureStats.filter(n => n.nature === selected)
+      : natureStats;
+
+    filtered.forEach(item => {
+      const card = document.createElement('div');
+      card.classList.add('overview-card');
+      card.innerHTML = `
+        <div class="card-icon">
+          <i class="fas fa-clipboard-list"></i>
+        </div>
+        <div class="card-content">
+          <h3>${item.nature}</h3>
+          <p class="number">${item.total}</p>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  // Ensure the function is called when the page loads
+  document.addEventListener('DOMContentLoaded', updateNatureStats);
+
+// -----------------------------------------------------------------------------------------------------------------
+                                // SELECT FILTER 
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Elements ---
+    const directionSelect = document.getElementById('directions');
+    const sousDirectionSelect = document.getElementById('sousdirections');
+    const posteSelect = document.getElementById('poste');
+    const statusSelect = document.getElementById('status');
+    const searchInput = document.querySelector('.search-bar input');
+
+    const tableBody = document.querySelector('.employee-table tbody');
+    const gridContainer = document.querySelector('.employees-grid');
+    const cardContainer = document.querySelector('.employees-cards');
+    const paginationContainer = document.getElementById('pagination-table');
+
+    // --- Pagination variables ---
+    const rowsPerPage = 10;
+    let currentPage = 1;
+    let filteredItems = [];
+
+    // --- Store original data ---
+    const originalTableRows = Array.from(document.querySelectorAll('.employee-table tbody tr'));
+    const originalGridItems = Array.from(document.querySelectorAll('.employee-grid-item'));
+    const originalCardItems = Array.from(document.querySelectorAll('.employee-card-item'));
+
+    // --- No results elements (created once) ---
+    const tableNoResults = document.createElement('tr');
+    tableNoResults.className = 'no-results';
+    tableNoResults.innerHTML = '<td colspan="7" style="text-align: center; padding: 20px;">Rien à afficher</td>';
+
+    const gridNoResults = document.createElement('div');
+    gridNoResults.className = 'no-results';
+    gridNoResults.style.textAlign = 'center';
+    gridNoResults.style.padding = '20px';
+    gridNoResults.textContent = 'Rien à afficher';
+
+    const cardNoResults = document.createElement('div');
+    cardNoResults.className = 'no-results';
+    cardNoResults.style.textAlign = 'center';
+    cardNoResults.style.padding = '20px';
+    cardNoResults.textContent = 'Rien à afficher';
+
+    // --- Map status select values to displayed text ---
+    function mapStatusValue(statusValue) {
+        switch(statusValue) {
+            case 'active': return 'Actif';
+            case 'leave': return 'En Congé';
+            case 'training': return 'En Formation';
+            default: return '';
+        }
+    }
+
+    // --- Apply all filters and search, then paginate ---
+    function applyFiltersSearchAndPaginate() {
+        console.clear();
+        console.log('--- Applying filters and search ---');
+
+        const directionValue = directionSelect.value;
+        const sousDirectionValue = sousDirectionSelect.value;
+        const posteValue = posteSelect.value;
+        const statusValue = statusSelect.value;
+        const searchValue = searchInput.value.toLowerCase().trim();
+
+        console.log('Filter values:', {
+            direction: directionValue,
+            sousDirection: sousDirectionValue,
+            poste: posteValue,
+            status: statusValue,
+            search: searchValue
+        });
+
+        // Filter original rows based on selects and search
+        filteredItems = originalTableRows.filter(row => {
+            const rowDirection = row.getAttribute('data-direction') || '';
+            const rowSousDirection = row.getAttribute('data-sousdirection') || '';
+            const rowPoste = row.getAttribute('data-poste') || '';
+            const rowStatus = row.getAttribute('data-statut') || '';
+            const rowNom = (row.getAttribute('data-nom') || '').toLowerCase();
+            const rowMatricule = (row.getAttribute('data-matricule') || '').toLowerCase();
+
+            const matchesDirection = !directionValue || directionValue === '' || rowDirection === directionValue;
+            const matchesSousDirection = !sousDirectionValue || sousDirectionValue === '' || rowSousDirection === sousDirectionValue;
+            const matchesPoste = !posteValue || posteValue === '' || rowPoste === posteValue;
+            const matchesStatus = !statusValue || statusValue === '' || mapStatusValue(statusValue) === rowStatus;
+            const matchesSearch = !searchValue || rowNom.includes(searchValue) || rowMatricule.includes(searchValue);
+
+            return matchesDirection && matchesSousDirection && matchesPoste && matchesStatus && matchesSearch;
+        });
+
+        console.log(`Filtered items count: ${filteredItems.length}`);
+
+        // Reset to first page after filtering/searching
+        currentPage = 1;
+
+        displayPaginatedResults();
+    }
+
+    // --- Display paginated results in all views ---
+    function displayPaginatedResults() {
+        const totalPages = Math.max(1, Math.ceil(filteredItems.length / rowsPerPage));
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+
+        console.log(`Displaying page ${currentPage} of ${totalPages}`);
+
+        // Clear current views
+        tableBody.innerHTML = '';
+        gridContainer.innerHTML = '';
+        cardContainer.innerHTML = '';
+
+        const paginatedItems = filteredItems.slice(startIndex, endIndex);
+
+        if (paginatedItems.length === 0) {
+            tableBody.appendChild(tableNoResults.cloneNode(true));
+            gridContainer.appendChild(gridNoResults.cloneNode(true));
+            cardContainer.appendChild(cardNoResults.cloneNode(true));
+            console.log('No results to display on this page.');
+        } else {
+            paginatedItems.forEach(row => {
+                const index = originalTableRows.indexOf(row);
+
+                // Append cloned row to table
+                tableBody.appendChild(row.cloneNode(true));
+
+                // Append cloned grid item if exists
+                if (originalGridItems[index]) {
+                    gridContainer.appendChild(originalGridItems[index].cloneNode(true));
+                }
+
+                // Append cloned card item if exists
+                if (originalCardItems[index]) {
+                    cardContainer.appendChild(originalCardItems[index].cloneNode(true));
+                }
+            });
+        }
+
+        updatePaginationControls(totalPages);
+    }
+
+    // --- Update pagination buttons and info ---
+    function updatePaginationControls(totalPages) {
+        paginationContainer.innerHTML = `
+            <div class="pagination-controls">
+                <button id="prevPage" ${currentPage === 1 ? 'disabled' : ''}>Précédent</button>
+                <span>Page ${currentPage} / ${totalPages}</span>
+                <button id="nextPage" ${currentPage === totalPages ? 'disabled' : ''}>Suivant</button>
+            </div>
+        `;
+
+        const prevBtn = document.getElementById('prevPage');
+        const nextBtn = document.getElementById('nextPage');
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    console.log('Previous page clicked, new page:', currentPage);
+                    displayPaginatedResults();
+                }
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    console.log('Next page clicked, new page:', currentPage);
+                    displayPaginatedResults();
+                }
+            });
+        }
+    }
+
+    // --- Attach event listeners ---
+    [directionSelect, sousDirectionSelect, posteSelect, statusSelect].forEach(select => {
+        select.addEventListener('change', applyFiltersSearchAndPaginate);
+    });
+    searchInput.addEventListener('input', applyFiltersSearchAndPaginate);
+
+    // --- Initial display ---
+    applyFiltersSearchAndPaginate();
+});
+
+// Function to delete a report
+async function deleteReport(reportId) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce rapport ? Cette action est irréversible.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/rapports/${reportId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Remove the report row from the table
+            const row = document.querySelector(`tr[data-report-id="${reportId}"]`);
+            if (row) {
+                row.remove();
+            }
+            
+            // Show success message
+            showNotification('Rapport supprimé avec succès', false);
+            
+            // If no more reports, show the empty state
+            const tbody = document.querySelector('.reports-table tbody');
+            if (tbody && tbody.querySelectorAll('tr').length === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = '<td colspan="5">Aucun rapport disponible</td>';
+                tbody.appendChild(emptyRow);
+            }
+        } else {
+            throw new Error(result.message || 'Erreur lors de la suppression du rapport');
+        }
+    } catch (error) {
+        console.error('Error deleting report:', error);
+        showNotification(error.message || 'Une erreur est survenue lors de la suppression du rapport', true);
+    }
+}
+
+// Function to show notification message
+function showNotification(message, isError = false) {
+  const notification = document.createElement('div');
+  notification.className = `notification-message ${isError ? 'error' : 'success'}`;
+  notification.textContent = message;
+  
+  document.body.appendChild(notification);
+  
+  // Trigger reflow
+  notification.offsetHeight;
+  
+  // Show notification
+  notification.classList.add('show');
+  
+  // Hide after 5 seconds
+  setTimeout(() => {
+    notification.classList.remove('show');
+    
+    // Remove from DOM after animation
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  }, 5000);
+}
+
+// Function to save report to database
+async function saveReportToDatabase(employeeId, employeeName, event) {
+  console.log('=== saveReportToDatabase called ===');
+  console.log('employeeId:', employeeId, 'employeeName:', employeeName);
+  
+  // Get the button that was clicked (if any)
+  const button = event?.target?.closest('button');
+  const originalHTML = button?.innerHTML || '';
+  
+  try {
+    // Update button UI if button exists
+    if (button) {
+      button.disabled = true;
+      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+    }
+    
+    // Prepare the report data with properly formatted content
+    const reportContent = {
+      content: `Bonjour ${employeeName || 'collègue'},\n\nNous vous rappelons de planifier vos congés annuels.\n\nMerci de votre compréhension.\n\nCordialement,\nL'équipe RH`,
+      timestamp: new Date().toISOString(),
+      employeeId: employeeId,
+      employeeName: employeeName
+    };
+
+    const reportData = {
+      user_id: employeeId,
+      type: 'relecat',
+      titre: `Relance - ${employeeName || 'Employé ' + employeeId}`,
+      contenu: JSON.stringify(reportContent)
+    };
+    
+    console.log('Report data to be sent:', JSON.stringify(reportData, null, 2));
+    
+    console.log('Saving report with data:', JSON.stringify(reportData, null, 2));
+    
+    try {
+      console.log('Sending request to /api/rapports with data:', JSON.stringify(reportData, null, 2));
+      
+      const response = await fetch('/api/rapports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(reportData),
+        credentials: 'same-origin'
+      });
+      
+      console.log('Server response status:', response.status);
+      console.log('Response headers:', Object.fromEntries([...response.headers.entries()]));
+      
+      let result;
+      const responseText = await response.text();
+      console.log('Raw response text:', responseText);
+      
+      try {
+        result = responseText ? JSON.parse(responseText) : {};
+        console.log('Parsed response data:', result);
+      } catch (jsonError) {
+        console.error('Error parsing JSON response:', jsonError);
+        console.error('Response that failed to parse:', responseText);
+        throw new Error(`Invalid JSON response from server: ${jsonError.message}`);
+      }
+      
+      if (!response.ok) {
+        const errorDetails = {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          error: result || { message: 'No error details provided' },
+          responseText: responseText
+        };
+        
+        console.error('Server returned error:', errorDetails);
+        
+        // Try to extract a meaningful error message
+        let errorMessage = 'Une erreur est survenue lors du traitement de votre demande';
+        
+        if (result && result.message) {
+          errorMessage = result.message;
+        } else if (result && result.error) {
+          errorMessage = typeof result.error === 'string' ? result.error : 'Erreur inconnue';
+        } else if (response.status === 500) {
+          errorMessage = 'Erreur interne du serveur. Veuillez réessayer plus tard.';
+        } else if (response.status === 404) {
+          errorMessage = 'La ressource demandée est introuvable';
+        } else if (response.status === 403) {
+          errorMessage = 'Accès refusé. Vous n\'avez pas les permissions nécessaires.';
+        }
+        
+        const error = new Error(errorMessage);
+        error.details = errorDetails;
+        throw error;
+      }
+      
+      console.log('Report saved successfully:', result);
+      showNotification('Rapport enregistré avec succès!', false);
+      return result;
+    } catch (error) {
+      console.error('Error in fetch operation:', {
+        error: error.message,
+        employeeId,
+        timestamp: new Date().toISOString()
+      });
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error saving report:', {
+      error: error.message,
+      employeeId,
+      timestamp: new Date().toISOString()
+    });
+    
+    showNotification(`Erreur: ${error.message || 'Échec de l\'enregistrement du rapport'}`, true);
+    throw error;
+    
+  } finally {
+    // Restore button state if button exists
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = originalHTML || 'Créer rapport';
+    }
+  }
+}
+
+// Keep the old function name for backward compatibility
+async function sendRelecatNotification(employeeId, employeeName, event) {
+  try {
+    // Just call the saveReportToDatabase function
+    return await saveReportToDatabase(employeeId, employeeName, event);
+  } catch (error) {
+    console.error('Error in sendRelecatNotification:', error);
+    throw error;
+  }
+}
+
+// Add event listeners for notification buttons
+// Function to handle notification button clicks
+function handleNotificationButtonClick(event) {
+    // Find the closest parent button with the send-notification class
+    const button = event.target.closest('.send-notification');
+    if (!button) return;
+    
+    // Prevent default to avoid any form submission or link following
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Get employee data from data attributes
+    const employeeId = button.getAttribute('data-employee-id');
+    const employeeName = button.getAttribute('data-employee-name');
+    
+    console.log('Notification button clicked:', { employeeId, employeeName });
+    
+    if (!employeeId) {
+        console.error('Missing employee ID on button:', button.outerHTML);
+        showNotification('Erreur: ID employé manquant', true);
+        return;
+    }
+    
+    // Use a default name if not provided
+    const nameToUse = employeeName || `Employé ${employeeId}`;
+    
+    console.log('Sending notification for:', { employeeId, name: nameToUse });
+    sendRelecatNotification(employeeId, nameToUse, { currentTarget: button, preventDefault: () => {} });
+}
+
+// Function to handle debug button clicks
+function handleDebugButtonClick(event) {
+    const debugButton = event.target.closest('.debug-employee');
+    if (!debugButton) return;
+    
+    event.preventDefault();
+    event.stopPropagation();
+    
+    try {
+        const employeeData = JSON.parse(debugButton.getAttribute('data-employee'));
+        console.log('Employee data:', employeeData);
+    } catch (e) {
+        console.error('Error parsing employee data:', e);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM fully loaded, setting up event listeners');
+    
+    // Set up event delegation for notification buttons
+    document.addEventListener('click', function(event) {
+        handleNotificationButtonClick(event);
+        handleDebugButtonClick(event);
+    });
+    
+    // Log all notification buttons on the page for debugging
+    const buttons = document.querySelectorAll('.send-notification');
+    console.log(`Found ${buttons.length} notification buttons on the page`);
+    buttons.forEach((btn, index) => {
+        console.log(`Button ${index + 1}:`, {
+            id: btn.getAttribute('data-employee-id'),
+            name: btn.getAttribute('data-employee-name'),
+            disabled: btn.disabled,
+            outerHTML: btn.outerHTML
+        });
+    });
+});
+</script>
+</body>
+</html>

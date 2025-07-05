@@ -1,0 +1,1052 @@
+<!-- Cloned and adapted from manager-portal.ejs for Director Portal -->
+<% /* Replace all manager-specific variables and logic with director-specific ones as needed */ %>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Algérie - Portail Directeur</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/director-portal.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <img src="/imgs/logo.png" alt="logo" width="400">
+        </div>
+        <nav>
+            <a href="#dashboard" class="active" data-section="dashboard"><i class="fas fa-home"></i> <span>Tableau de Bord</span></a>
+            <a href="#director-leave-request" data-section="director-leave-request"><i class="fas fa-calendar-plus"></i> <span>Demande de Congé</span></a>
+            <a href="#sousdirector-management" data-section="sousdirector-management"><i class="fas fa-users"></i> <span>Gestion d'Équipe</span></a>
+            <a href="#leave-approvals" data-section="leave-approvals"><i class="fas fa-calendar-check"></i> <span>Approbation Congés</span></a>
+            <a href="#historique" data-section="historique">
+                <i class="fas fa-history"></i>
+                <span>Historique</span>
+            </a>
+            <a href="#documents" data-section="documents">
+                <i class="fas fa-file-alt"></i>
+                <span>Mes Documents</span>
+            </a>
+            <a href="/logout" class="sidebar-logout-btn" onclick="event.preventDefault(); window.location.href='/logout'">
+                <i class="fas fa-power-off"></i>
+                <span>Déconnexion</span>
+            </a>
+        </nav>
+    </div>
+    <main>
+        <header>
+            <div class="page-title">
+                <h1 id="currentPageTitle">Tableau de Bord</h1>
+            </div>
+            <div class="user-info">
+                <div class="notifications">
+                    <div class="notifications-icon<%= notificationsCount > 0 ? ' has-notifications' : '' %>" id="notificationsBell">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge"><%= notificationsCount %></span>
+                    </div>
+                    <div class="notifications-dropdown" id="notificationsDropdown" style="display: none;">
+                        <% if (notificationsCount > 0) { %>
+                            <div class="notification-item">
+                                <i class="fas fa-clock"></i>
+                                Vous avez <b><%= notificationsCount %></b> demandes de sous-directeurs en attente à traiter.
+                            </div>
+                        <% } else { %>
+                            <div class="notification-item empty">
+                                <i class="fas fa-inbox"></i>
+                                Aucune nouvelle notification.
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                  var bell = document.getElementById('notificationsBell');
+                  var dropdown = document.getElementById('notificationsDropdown');
+                  bell.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                  });
+                  document.addEventListener('click', function() {
+                    dropdown.style.display = 'none';
+                  });
+                });
+                </script>
+                <div class="profile">
+                    <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(director ? director.nomcomplet : '') %>" alt="Profile">
+                    <div class="profile-info">
+                        <span class="name"><%= director ? director.nomcomplet : '' %></span>
+                        <span class="role"><%= director && director.groupeid === 3 ? "Directeur" : '' %></span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section active">
+            <div class="dashboard-header">
+                <div class="profile-summary">
+                    <div class="profile-avatar">
+                        <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(director ? director.nomcomplet : '') %>" alt="Profile" id="profileImage">
+                    </div>
+                    <div class="profile-info-header">
+                        <h2><%= director ? director.nomcomplet : '' %></h2>
+                        <p><%= director && director.groupeid === 3 ? "Directeur" : '' %></p>
+                        <p>ID Directeur: <%= director ? director.id : '' %></p>
+                        <div class="profile-info-grid">
+                            <div class="info-group">
+                                <label>Email Professionnel</label>
+                                <p><%= director ? director.email : '' %></p>
+                            </div>
+                            <div class="info-group">
+                                <label>Téléphone</label>
+                                <p>+213<%= director ? director.phone || '' : '' %></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+                        <div class="stat-details">
+                            <h3>Jours Disponibles</h3>
+                            <p><%= typeof jours_dispo !== 'undefined' ? jours_dispo : 0 %> jours</p>
+                            <small>Année <%= new Date().getFullYear() %></small>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-user-tie"></i></div>
+                        <div class="stat-details">
+                            <h3>Sous-Directeurs</h3>
+                            <p><%= stats.totalSousDirectors %> membres</p>
+                            <small>Actifs</small>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-user-cog"></i></div>
+                        <div class="stat-details">
+                            <h3>Managers</h3>
+                            <p><%= stats.totalManagers %> membres</p>
+                            <small>Actifs</small>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-user"></i></div>
+                        <div class="stat-details">
+                            <h3>Employés</h3>
+                            <p><%= stats.totalRegularEmployees %> membres</p>
+                            <small>Actifs</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leave Request Stats -->
+                <div class="stats-container" style="margin-top: 24px;">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+                        <div class="stat-details">
+                            <h3>Total Demandes</h3>
+                            <p><%= stats.leaveRequests.total %></p>
+                            <small>Congés</small>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                        <div class="stat-details">
+                            <h3>En Attente</h3>
+                            <p><%= stats.leaveRequests.pending %></p>
+                            <small>À traiter</small>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="stat-details">
+                            <h3>Approuvés</h3>
+                            <p><%= stats.leaveRequests.approved %></p>
+                            <small>Congés validés</small>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
+                        <div class="stat-details">
+                            <h3>Refusés</h3>
+                            <p><%= stats.leaveRequests.rejected %></p>
+                            <small>Congés refusés</small>
+                        </div>
+                    </div>
+                </div>
+           
+            <!-- Pending Requests List (like manager) -->
+            <div class="dashboard-grid">
+                <div class="grid-item pending-requests">
+                    <h2>Demandes à Traiter</h2>
+                    <div class="requests-list" id="pendingRequestsList">
+                        <% if (pendingDemandes && pendingDemandes.length > 0) { %>
+                            <% pendingDemandes.forEach(function(demande) { %>
+                                <div class="request-card" data-page="1">
+                                    <div class="request-info">
+                                        <span class="employee-name"><%= demande.employee_name %></span>
+                                        <span class="request-dates"><%= demande.date_debut ? (demande.date_debut.toISOString ? demande.date_debut.toISOString().slice(0,10) : demande.date_debut) : '' %> - <%= demande.date_fin ? (demande.date_fin.toISOString ? demande.date_fin.toISOString().slice(0,10) : demande.date_fin) : '' %></span>
+                                        <span class="request-type"><%= demande.nature %></span>
+                                        <span class="request-motif"><%= demande.motif %></span>
+                                    </div>
+                                    <div class="request-actions">
+                                        <form action="/director/update-etat/<%= demande.id %>" method="POST" class="action-form">
+                                            <button type="submit" class="action-btn approve">
+                                                <i class="fas fa-check"></i>
+                                                <span>Accepter</span>
+                                            </button>
+                                        </form>
+                                        <form action="/director/annuler-demande/<%= demande.id %>" method="POST" class="action-form">
+                                            <button type="submit" class="action-btn reject">
+                                                <i class="fas fa-times"></i>
+                                                <span>Refuser</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <div class="empty-state"><i class="fas fa-inbox"></i><p>Aucune demande à traiter</p></div>
+                        <% } %>
+                    </div>
+                    <% if (pendingDemandes && pendingDemandes.length > 0) { %>
+                        <div class="pagination pending-requests-pagination">
+                            <button class="pagination-btn" id="prevPendingPage">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <div class="page-numbers" id="pendingPageNumbers">
+                                <!-- Page numbers will be populated by JavaScript -->
+                            </div>
+                            <button class="pagination-btn" id="nextPendingPage">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    <% } %>
+                </div>
+                <div class="grid-item calendar-preview">
+                        <div class="calendar-header">
+                        <h2>Calendrier des Congés</h2>
+                            <div class="calendar-nav">
+                            <button class="calendar-nav-btn prev-month" id="prevMonth">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                            <span class="current-month" id="currentMonth">Mars 2025</span>
+                            <button class="calendar-nav-btn next-month" id="nextMonth">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    <div class="calendar-widget" id="calendarWidget" data-leave-requests='<%- JSON.stringify(directorDemandes || []).replace(/[ -\u001F\u007F-\u009F]/g, '') %>'>
+                            <div class="calendar-weekdays">
+                                <div>Lun</div>
+                                <div>Mar</div>
+                                <div>Mer</div>
+                                <div>Jeu</div>
+                                <div>Ven</div>
+                                <div>Sam</div>
+                            <div>Dim</div>
+                            </div>
+                        <div class="calendar-days" id="calendarDays">
+                            <!-- Days will be populated by JavaScript -->
+                        </div>
+                        </div>
+                        <div class="calendar-legend">
+                            <div class="legend-item">
+                                <div class="legend-color today"></div>
+                                <span>Aujourd'hui</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color approved"></div>
+                                <span>Congé Approuvé</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color pending"></div>
+                                <span>En Attente</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color rejected"></div>
+                            <span>Congé Refusé</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Director Leave Request Section (Demande de Congé) -->
+        <section id="director-leave-request" class="section">
+            <div class="leave-form-section">
+                <h2>Nouvelle Demande de Congé</h2>
+                <form action="/director/request-leave" method="POST" class="leave-form">
+                    <div class="form-group">
+                        <label>Type de Congé</label>
+                        <select name="nature" required>
+                            <option value="">Sélectionner le type</option>
+                            <option value="Congé Payé">Congé Payé</option>
+                            <option value="Congé Sans Solde">Congé Sans Solde</option>
+                            <option value="Congé Maladie">Congé Maladie</option>
+                            <option value="Congé Maternité">Congé Maternité</option>
+                            <option value="Congé Formation">Congé Formation</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date de Début</label>
+                            <input type="date" name="date_debut" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Date de Fin</label>
+                            <input type="date" name="date_fin" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Motif</label>
+                        <textarea name="motif" placeholder="Décrivez brièvement la raison de votre congé..." required></textarea>
+                    </div>
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-paper-plane"></i> Soumettre la Demande
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Sous-Director Management Section -->
+        <section id="sousdirector-management" class="section">
+            <h2>Gestion d'Équipe</h2>
+            <div class="team-container">
+                <div class="filters-section">
+                    <div class="search-filter">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Rechercher un employé..." value="<%= searchQuery %>">
+                    </div>
+                    <div class="filters-group">
+                        <div class="filter-item">
+                            <select id="roleFilter">
+                                <option value="">Tous les rôles</option>
+                                <option value="Sous-Directeur">Sous-Directeurs</option>
+                                <option value="Manager">Managers</option>
+                                <option value="Employé">Employés</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <select id="sous_direction_id">
+                                <option value="">Toutes les sous-directions</option>
+                                <% sousDirections.forEach(function(sd) { %>
+                                    <option value="<%= sd.id %>" <%= selectedSousDirectionId == sd.id ? 'selected' : '' %>>
+                                        <%= sd.nom %>
+                                    </option>
+                                <% }); %>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <select id="statusFilter">
+                                <option value="">Tous les statuts</option>
+                                <option value="active">Actif</option>
+                                <option value="on-leave">En congé</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="team-table-container">
+                <table class="team-table">
+                    <thead>
+                        <tr>
+                                <th>Membre</th>
+                                <th>Rôle</th>
+                                <th>Sous-Direction</th>
+                                <th>Fonction</th>
+                                <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                            <% employees.forEach(employee => { %>
+                                <tr data-role="<%= employee.role %>" 
+                                    data-sous_direction_id="<%= employee.sous_direction_id %>"
+                                    data-status="<%= employee.conge === 1 ? 'on-leave' : 'active' %>">
+                                    <td>
+                                        <div class="employee-info">
+                                            <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(employee.nomcomplet) %>" 
+                                                 alt="<%= employee.nomcomplet %>" 
+                                                 class="employee-avatar">
+                                            <div class="employee-details">
+                                                <span class="employee-name"><%= employee.nomcomplet %></span>
+                                                <span class="employee-email"><%= employee.email %></span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="role-badge <%= employee.role.toLowerCase().replace('é', 'e') %>">
+                                            <%= employee.role %>
+                                        </span>
+                                    </td>
+                                    <td><%= employee.sous_direction_nom %></td>
+                                    <td><%= employee.fonction_nom %></td>
+                                    <td>
+                                        <span class="status-badge <%= employee.conge === 1 ? 'on-leave' : 'active' %>">
+                                            <%= employee.conge === 1 ? 'En congé' : 'Actif' %>
+                                        </span>
+                                    </td>
+                        </tr>
+                            <% }); %>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+            <div class="pagination">
+                <button class="pagination-btn" id="prevSousDirectorPage">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="page-numbers" id="sousDirectorPageNumbers">
+                    <!-- Page numbers will be populated by JavaScript -->
+                </div>
+                <button class="pagination-btn" id="nextSousDirectorPage">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- Leave Approvals Section -->
+        <section id="leave-approvals" class="section">
+            <div class="leave-history">
+                <h2><i class="fas fa-history"></i> Historique des Congés</h2>
+                <div class="filters-section">
+                    <div class="search-filter">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="leaveSearch" placeholder="Rechercher...">
+                    </div>
+                    <div class="filters-group">
+                        <div class="filter-item">
+                            <select id="leaveTypeFilter">
+                                <option value="">Tous les types</option>
+                                <option value="Congé Payé">Congé Payé</option>
+                                <option value="Congé Sans Solde">Congé Sans Solde</option>
+                                <option value="Congé Maladie">Congé Maladie</option>
+                                <option value="Congé Maternité">Congé Maternité</option>
+                                <option value="Congé Formation">Congé Formation</option>
+                                <option value="Autre">Autre</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <select id="statusFilter">
+                                <option value="">Tous les statuts</option>
+                                <option value="approved">Approuvé</option>
+                                <option value="pending">En attente</option>
+                                <option value="rejected">Refusé</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="leave-history-table">
+                    <thead>
+                        <tr>
+                                <th>Employé</th>
+                                <th>Sous-Direction</th>
+                            <th>Type</th>
+                            <th>Date Début</th>
+                            <th>Date Fin</th>
+                                <th>Statut</th>
+                        </tr>
+                    </thead>
+                        <tbody id="leaveHistoryTableBody">
+                            <% demandes.forEach(demande => { %>
+                                <tr data-type="<%= demande.nature %>" 
+                                    data-status="<%= demande.etat === 1 ? 'approved' : demande.etat === 0 ? 'pending' : 'rejected' %>"
+                                    data-sous-direction="<%= demande.sous_direction_nom || '' %>">
+                                    <td>
+                                        <div class="employee-info">
+                                            <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(demande.employee_name) %>" alt="<%= demande.employee_name %>" class="employee-avatar">
+                                            <div class="employee-details">
+                                                <span class="employee-name"><%= demande.employee_name %></span>
+                                                <span class="employee-email"><%= demande.employee_email %></span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><%= demande.sous_direction_nom || 'N/A' %></td>
+                                    <td><span class="leave-type"><%= demande.nature %></span></td>
+                                    <td><%= new Date(demande.date_debut).toLocaleDateString('fr-FR') %></td>
+                                    <td><%= new Date(demande.date_fin).toLocaleDateString('fr-FR') %></td>
+                                    <td>
+                                        <% if (demande.etat === 1) { %>
+                                            <span class="status-badge approved">Approuvé</span>
+                                        <% } else if (demande.etat === 0) { %>
+                                            <span class="status-badge pending">En attente</span>
+                                        <% } else { %>
+                                            <span class="status-badge rejected">Refusé</span>
+                                        <% } %>
+                                </td>
+                            </tr>
+                            <% }); %>
+                    </tbody>
+                </table>
+                </div>
+                <div class="pagination">
+                    <button class="pagination-btn" id="prevLeaveHistoryPage">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="page-numbers" id="leaveHistoryPageNumbers">
+                        <!-- Page numbers will be populated by JavaScript -->
+                    </div>
+                    <button class="pagination-btn" id="nextLeaveHistoryPage">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Historique Section -->
+        <section id="historique" class="section">
+            <div class="history-container modern-history-card" style="background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 32px 24px; margin: 32px auto; max-width: 1100px;">
+                <div class="section-header modern-history-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 18px;">
+                    <h2 style="font-size: 2rem; font-weight: 700; color: #1a1a1a;"><i class="fas fa-history" style="color: #E3001B;"></i> Historique des Congés</h2>
+                </div>
+                <div class="modern-divider" style="height: 2px; background: #f0f0f0; margin-bottom: 18px;"></div>
+                <div class="history-table-container modern-history-table-container" style="overflow-x: auto;">
+                    <table class="history-table modern-history-table" id="directorHistoryTable" style="width: 100%; border-collapse: separate; border-spacing: 0 8px;">
+                        <thead>
+                            <tr style="background: #f8f8f8;">
+                                <th style="padding: 12px 8px; border-radius: 8px 0 0 8px;">Date de Demande</th>
+                                <th style="padding: 12px 8px;">Type</th>
+                                <th style="padding: 12px 8px;">Période</th>
+                                <th style="padding: 12px 8px;">Durée</th>
+                                <th style="padding: 12px 8px; border-radius: 0 8px 8px 0;">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="directorHistoryTableBody">
+                            <% if (directorDemandes && directorDemandes.length > 0) { %>
+                                <% directorDemandes.forEach(function(demande, idx) { %>
+                                    <tr class="history-row" data-index="<%= idx %>" style="background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.03); border-radius: 8px;">
+                                        <td style="padding: 10px 8px; font-weight: 500; color: #333;"> <%= demande.date_dmd ? (demande.date_dmd.toISOString ? demande.date_dmd.toISOString().slice(0,10) : demande.date_dmd) : '' %></td>
+                                        <td style="padding: 10px 8px; color: #555;"> <%= demande.nature %></td>
+                                        <td style="padding: 10px 8px; color: #555;"> <%= demande.date_debut ? (demande.date_debut.toISOString ? demande.date_debut.toISOString().slice(0,10) : demande.date_debut) : '' %> au <%= demande.date_fin ? (demande.date_fin.toISOString ? demande.date_fin.toISOString().slice(0,10) : demande.date_fin) : '' %></td>
+                                        <td style="padding: 10px 8px; color: #555;">
+                                            <% if (typeof demande.jour_pres !== 'undefined' && demande.jour_pres !== null) { %>
+                                                <%= demande.jour_pres %> jours
+                                            <% } else if (demande.date_debut && demande.date_fin) { %>
+                                                <% 
+                                                    var start = new Date(demande.date_debut);
+                                                    var end = new Date(demande.date_fin);
+                                                    var diff = Math.round((end - start) / (1000*60*60*24)) + 1;
+                                                %>
+                                                <%= diff %> jours
+                                            <% } %>
+                                        </td>
+                                        <td style="padding: 10px 8px;">
+                                            <div style="display: flex; align-items: center; gap: 8px;">
+                                                <% if (demande.etat == 0) { %>
+                                                    <span class="status-badge pending" style="background: #ffc1071a; color: #ffc107; border-radius: 6px; padding: 4px 12px; font-weight: 600;">En Attente</span>
+                                                <% } else if (demande.etat === 1) { %>
+                                                    <span class="status-badge approved" style="background: #28a7451a; color: #28a745; border-radius: 6px; padding: 4px 12px; font-weight: 600;">Approuvé</span>
+                                                <% } else if (demande.etat === 2) { %>
+                                                    <span class="status-badge rejected" style="background: #dc35451a; color: #dc3545; border-radius: 6px; padding: 4px 12px; font-weight: 600;">Refusé</span>
+                                                <% } %>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            <% } else { %>
+                                <tr><td colspan="5" style="text-align:center; color:#888; padding: 24px 0;">Aucune demande trouvée.</td></tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls modern-pagination" id="directorHistoryPagination" style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 24px;"></div>
+            </div>
+        </section>
+
+        <!-- Mes Documents Section -->
+        <section id="documents" class="section">
+            <div class="documents-container">
+                <div class="documents-header">
+                    <h2>Mes Documents</h2>
+                </div>
+                <div class="documents-grid" id="documentsGrid">
+                    <% if (documents && documents.length > 0) { %>
+                        <% documents.forEach(function(doc) { %>
+                            <div class="document-card">
+                                <div class="document-icon">
+                                    <i class="fas fa-file-pdf"></i>
+                                </div>
+                                <div class="document-info">
+                                    <h3>Attestation de Congé</h3>
+                                    <div class="document-meta">
+                                        <span><i class="fas fa-calendar"></i> <%= doc.date_debut ? (doc.date_debut.toISOString ? doc.date_debut.toISOString().slice(0,10) : doc.date_debut.toString().slice(0,10)) : '' %> - <%= doc.date_fin ? (doc.date_fin.toISOString ? doc.date_fin.toISOString().slice(0,10) : doc.date_fin.toString().slice(0,10)) : '' %></span>
+                                        <span><i class="fas fa-clock"></i> <%= doc.jour_pres %> jours</span>
+                                        <span><i class="fas fa-tag"></i> <%= doc.nature %></span>
+                                    </div>
+                                </div>
+                                <div class="document-actions">
+                                    <a href="/view-document/<%= doc.id %>" target="_blank" class="btn-view-doc" title="Voir le document"><i class="fas fa-eye"></i></a>
+                                    <% if (doc.document_generated) { %>
+                                        <a href="/download-document/<%= doc.id %>" class="btn-download-doc" title="Télécharger"><i class="fas fa-download"></i></a>
+                                    <% } %>
+                                    <button class="btn-delete-doc" data-id="<%= doc.id %>" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                    <div class="empty-documents-state">
+                        <i class="fas fa-folder-open"></i>
+                        <p>Aucun document disponible</p>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Director dashboard and approval sections will go here, similar to manager -->
+    <!-- (Dashboard content placeholder: add charts, stats, etc. here in the future) -->
+    <!-- Add sections for leave approval of sous-directors here -->
+</main>
+<script src="js/director-portal.js"></script>
+
+<!-- Add JavaScript for filtering -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const roleFilter = document.getElementById('roleFilter');
+    const sous_direction_id = document.getElementById('sous_direction_id');
+    const statusFilter = document.getElementById('statusFilter');
+    const tableRows = document.querySelectorAll('.team-table tbody tr');
+    const itemsPerPage = 10;
+    let currentPage = 1;
+    const prevBtn = document.getElementById('prevSousDirectorPage');
+    const nextBtn = document.getElementById('nextSousDirectorPage');
+    const pageNumbers = document.getElementById('sousDirectorPageNumbers');
+
+    function getVisibleRows() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedRole = roleFilter.value;
+        const selectedSousDirection = sous_direction_id.value;
+        const selectedStatus = statusFilter.value;
+
+        return Array.from(tableRows).filter(row => {
+            const name = row.querySelector('.employee-name').textContent.toLowerCase();
+            const email = row.querySelector('.employee-email').textContent.toLowerCase();
+            const role = row.dataset.role;
+            const sous_direction = row.dataset.sous_direction_id;
+            const status = row.dataset.status;
+
+            const matchesSearch = name.includes(searchTerm) || email.includes(searchTerm);
+            const matchesRole = !selectedRole || role === selectedRole;
+            const matchesSousDirection = !selectedSousDirection || sous_direction === selectedSousDirection;
+            const matchesStatus = !selectedStatus || status === selectedStatus;
+
+            return matchesSearch && matchesRole && matchesSousDirection && matchesStatus;
+        });
+    }
+
+    function updatePagination() {
+        const visibleRows = getVisibleRows();
+        const totalRows = visibleRows.length;
+        const totalPages = Math.max(1, Math.ceil(totalRows / itemsPerPage));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        // Hide all rows first
+        tableRows.forEach(row => row.style.display = 'none');
+        // Show only rows for current page
+        visibleRows.forEach((row, idx) => {
+            if (idx >= (currentPage - 1) * itemsPerPage && idx < currentPage * itemsPerPage) {
+                row.style.display = '';
+            }
+        });
+
+        // Update page numbers
+        pageNumbers.innerHTML = `<span class="current-page">${currentPage}</span><span>sur ${totalPages}</span>`;
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages;
+
+        // Scroll to the section header with smooth behavior
+        const sectionHeader = document.querySelector('#sousdirector-management h2');
+        if (sectionHeader) {
+            sectionHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    // Add event listeners for pagination
+    prevBtn.addEventListener('click', function() {
+        if (currentPage > 1) {
+            currentPage--;
+            updatePagination();
+        }
+    });
+
+    nextBtn.addEventListener('click', function() {
+        const visibleRows = getVisibleRows();
+        const totalPages = Math.max(1, Math.ceil(visibleRows.length / itemsPerPage));
+        if (currentPage < totalPages) {
+            currentPage++;
+            updatePagination();
+        }
+    });
+
+    // Add event listeners for filters
+    searchInput.addEventListener('input', function() {
+        currentPage = 1; // Reset to first page when search changes
+        updatePagination();
+    });
+
+    roleFilter.addEventListener('change', function() {
+        currentPage = 1; // Reset to first page when filter changes
+        updatePagination();
+    });
+
+    sous_direction_id.addEventListener('change', function() {
+        currentPage = 1; // Reset to first page when filter changes
+        updatePagination();
+    });
+
+    statusFilter.addEventListener('change', function() {
+        currentPage = 1; // Reset to first page when filter changes
+        updatePagination();
+    });
+
+    // Initialize filters with URL parameters if they exist
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('role')) roleFilter.value = urlParams.get('role');
+    if (urlParams.has('sous_direction_id')) sous_direction_id.value = urlParams.get('sous_direction_id');
+    if (urlParams.has('status')) statusFilter.value = urlParams.get('status');
+    if (urlParams.has('search')) searchInput.value = urlParams.get('search');
+
+    // Initialize pagination
+    updatePagination();
+});
+</script>
+
+<!-- Leave history filtering -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const itemsPerPage = 10;
+    let currentPage = 1;
+    const table = document.querySelector('.leave-history-table');
+    const tbody = table.querySelector('tbody');
+    const allRows = Array.from(tbody.querySelectorAll('tr'));
+    const prevBtn = document.getElementById('prevLeaveHistoryPage');
+    const nextBtn = document.getElementById('nextLeaveHistoryPage');
+    const pageNumbers = document.getElementById('leaveHistoryPageNumbers');
+    const searchInput = document.getElementById('leaveSearch');
+    const typeFilter = document.getElementById('leaveTypeFilter');
+    const statusFilter = document.getElementById('statusFilter');
+
+    function getVisibleRows() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedType = typeFilter.value;
+        const selectedStatus = statusFilter.value;
+
+        return allRows.filter(row => {
+            const employeeName = row.querySelector('.employee-name').textContent.toLowerCase();
+            const employeeEmail = row.querySelector('.employee-email').textContent.toLowerCase();
+            const type = row.dataset.type;
+            const status = row.dataset.status;
+
+            const matchesSearch = employeeName.includes(searchTerm) || employeeEmail.includes(searchTerm);
+            const matchesType = !selectedType || type === selectedType;
+            const matchesStatus = !selectedStatus || status === selectedStatus;
+
+            return matchesSearch && matchesType && matchesStatus;
+        });
+    }
+
+    function updatePagination() {
+        const visibleRows = getVisibleRows();
+        const totalRows = visibleRows.length;
+        const totalPages = Math.max(1, Math.ceil(totalRows / itemsPerPage));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        // Hide all rows first
+        allRows.forEach(row => row.style.display = 'none');
+        // Show only rows for current page
+        visibleRows.forEach((row, idx) => {
+            if (idx >= (currentPage - 1) * itemsPerPage && idx < currentPage * itemsPerPage) {
+                row.style.display = '';
+            }
+        });
+
+        // Update page numbers
+        pageNumbers.innerHTML = `<span class="current-page">${currentPage}</span><span>sur ${totalPages}</span>`;
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages;
+
+        // Scroll to the section header with smooth behavior
+        const sectionHeader = document.querySelector('#leave-approvals h2');
+        if (sectionHeader) {
+            sectionHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    // Add event listeners for pagination
+    prevBtn.addEventListener('click', function() {
+        if (currentPage > 1) {
+            currentPage--;
+            updatePagination();
+        }
+    });
+
+    nextBtn.addEventListener('click', function() {
+        const visibleRows = getVisibleRows();
+        const totalPages = Math.max(1, Math.ceil(visibleRows.length / itemsPerPage));
+        if (currentPage < totalPages) {
+            currentPage++;
+            updatePagination();
+        }
+    });
+
+    // Add event listeners for filters
+    searchInput.addEventListener('input', function() {
+        currentPage = 1; // Reset to first page when search changes
+        updatePagination();
+    });
+
+    typeFilter.addEventListener('change', function() {
+        currentPage = 1; // Reset to first page when filter changes
+        updatePagination();
+    });
+
+    statusFilter.addEventListener('change', function() {
+        currentPage = 1; // Reset to first page when filter changes
+        updatePagination();
+    });
+
+    // Initialize pagination
+    updatePagination();
+});
+</script>
+
+<!-- Calendar functionality -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarDays = document.getElementById('calendarDays');
+    const currentMonthElement = document.getElementById('currentMonth');
+    const prevMonthBtn = document.getElementById('prevMonth');
+    const nextMonthBtn = document.getElementById('nextMonth');
+    const calendarWidget = document.getElementById('calendarWidget');
+    
+    let currentDate = new Date();
+    let currentMonth = currentDate.getMonth();
+    let currentYear = currentDate.getFullYear();
+
+    // Get leave requests data from the data attribute
+    const leaveRequests = JSON.parse(calendarWidget.dataset.leaveRequests || '[]');
+
+    function formatDate(date) {
+        return date.toISOString().split('T')[0];
+    }
+
+    function isToday(date) {
+        const today = new Date();
+        return date.getDate() === today.getDate() &&
+               date.getMonth() === today.getMonth() &&
+               date.getFullYear() === today.getFullYear();
+    }
+
+    function getLeaveStatus(date) {
+        const dateStr = formatDate(date);
+        const requests = leaveRequests.filter(req => {
+            const startDate = new Date(req.date_debut);
+            const endDate = new Date(req.date_fin);
+            const checkDate = new Date(dateStr);
+            return checkDate >= startDate && checkDate <= endDate;
+        });
+
+        if (requests.length === 0) return null;
+        
+        // If any request is pending, show pending
+        if (requests.some(req => req.etat === 0)) return 'pending';
+        // If any request is rejected, show rejected
+        if (requests.some(req => req.etat === 2)) return 'rejected';
+        // Otherwise show approved
+        return 'approved';
+    }
+
+    function renderCalendar() {
+        const firstDay = new Date(currentYear, currentMonth, 1);
+        const lastDay = new Date(currentYear, currentMonth + 1, 0);
+        const startingDay = firstDay.getDay();
+        const totalDays = lastDay.getDate();
+
+        // Update month and year display
+        const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                          'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+        currentMonthElement.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+        // Clear previous calendar
+        calendarDays.innerHTML = '';
+
+        // Add empty cells for days before the first day of the month
+        for (let i = 0; i < startingDay; i++) {
+            const emptyDay = document.createElement('div');
+            emptyDay.className = 'calendar-day empty';
+            calendarDays.appendChild(emptyDay);
+        }
+
+        // Add days of the month
+        for (let day = 1; day <= totalDays; day++) {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day';
+            
+            const currentDate = new Date(currentYear, currentMonth, day);
+            const leaveStatus = getLeaveStatus(currentDate);
+            
+            if (isToday(currentDate)) {
+                dayElement.classList.add('today');
+            }
+            
+            if (leaveStatus) {
+                dayElement.classList.add(`leave-${leaveStatus}`);
+            }
+
+            dayElement.textContent = day;
+            calendarDays.appendChild(dayElement);
+        }
+
+        // Add empty cells for days after the last day of the month to complete the grid
+        const totalCells = 42; // 6 rows of 7 days
+        const remainingCells = totalCells - (startingDay + totalDays);
+        for (let i = 0; i < remainingCells; i++) {
+            const emptyDay = document.createElement('div');
+            emptyDay.className = 'calendar-day empty';
+            calendarDays.appendChild(emptyDay);
+        }
+    }
+
+    // Event listeners for month navigation
+    prevMonthBtn.addEventListener('click', () => {
+        currentMonth--;
+        if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+        }
+        renderCalendar();
+    });
+
+    nextMonthBtn.addEventListener('click', () => {
+        currentMonth++;
+        if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+        }
+        renderCalendar();
+    });
+
+    // Initial calendar render
+    renderCalendar();
+});
+</script>
+
+<!-- Add JavaScript for filtering -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing code ...
+
+    // Pending Requests Pagination
+    const pendingRequestsList = document.getElementById('pendingRequestsList');
+    const pendingRequestCards = pendingRequestsList ? Array.from(pendingRequestsList.querySelectorAll('.request-card')) : [];
+    const itemsPerPage = 5; // Show 5 requests per page
+    let currentPendingPage = 1;
+    const prevPendingBtn = document.getElementById('prevPendingPage');
+    const nextPendingBtn = document.getElementById('nextPendingPage');
+    const pendingPageNumbers = document.getElementById('pendingPageNumbers');
+
+    function updatePendingRequestsPagination() {
+        if (!pendingRequestsList || pendingRequestCards.length === 0) return;
+
+        const totalPages = Math.ceil(pendingRequestCards.length / itemsPerPage);
+        if (currentPendingPage > totalPages) currentPendingPage = totalPages;
+
+        // Hide all request cards
+        pendingRequestCards.forEach(card => card.style.display = 'none');
+
+        // Show only cards for current page
+        pendingRequestCards.forEach((card, index) => {
+            if (index >= (currentPendingPage - 1) * itemsPerPage && index < currentPendingPage * itemsPerPage) {
+                card.style.display = '';
+            }
+        });
+
+        // Update page numbers
+        if (pendingPageNumbers) {
+            pendingPageNumbers.innerHTML = `<span class="current-page">${currentPendingPage}</span><span>sur ${totalPages}</span>`;
+        }
+
+        // Update button states
+        if (prevPendingBtn) prevPendingBtn.disabled = currentPendingPage === 1;
+        if (nextPendingBtn) nextPendingBtn.disabled = currentPendingPage === totalPages;
+    }
+
+    // Add event listeners for pending requests pagination
+    if (prevPendingBtn) {
+        prevPendingBtn.addEventListener('click', function() {
+            if (currentPendingPage > 1) {
+                currentPendingPage--;
+                updatePendingRequestsPagination();
+            }
+        });
+    }
+
+    if (nextPendingBtn) {
+        nextPendingBtn.addEventListener('click', function() {
+            const totalPages = Math.ceil(pendingRequestCards.length / itemsPerPage);
+            if (currentPendingPage < totalPages) {
+                currentPendingPage++;
+                updatePendingRequestsPagination();
+            }
+        });
+    }
+
+    // Initialize pending requests pagination
+    updatePendingRequestsPagination();
+});
+</script>
+
+<!-- Pagination for director historique -->
+<script>
+// Pagination for director historique
+(function() {
+    const itemsPerPage = 10;
+    const tableBody = document.getElementById('directorHistoryTableBody');
+    const allRows = tableBody ? Array.from(tableBody.querySelectorAll('tr.history-row')) : [];
+    const pagination = document.getElementById('directorHistoryPagination');
+    let currentPage = 1;
+    function renderPage(page) {
+        if (!allRows.length) return;
+        const totalPages = Math.ceil(allRows.length / itemsPerPage) || 1;
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        allRows.forEach((row, idx) => {
+            row.style.display = (idx >= (page-1)*itemsPerPage && idx < page*itemsPerPage) ? '' : 'none';
+        });
+        // Render pagination controls
+        if (pagination) {
+            pagination.innerHTML = '';
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'pagination-btn';
+            prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+            prevBtn.disabled = page === 1;
+            prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; renderPage(currentPage); } };
+            pagination.appendChild(prevBtn);
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                const span = document.createElement('span');
+                span.className = 'page-number' + (i === page ? ' active' : '');
+                span.textContent = i;
+                span.onclick = () => { currentPage = i; renderPage(currentPage); };
+                pagination.appendChild(span);
+            }
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'pagination-btn';
+            nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            nextBtn.disabled = page === totalPages;
+            nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; renderPage(currentPage); } };
+            pagination.appendChild(nextBtn);
+        }
+    }
+    if (allRows.length) renderPage(currentPage);
+})();
+</script>
+
+</body>
+</html>

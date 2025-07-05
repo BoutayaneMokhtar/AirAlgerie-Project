@@ -1,0 +1,4518 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Air Algérie – Portail Administration</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/admin-portal.css">
+  <meta name="user-id" content="<%= user.id %>">
+  <style>
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal[style*="display: flex"] {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-content {
+      background: #ffffff;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      transform: translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(227, 0, 27, 0.1);
+    }
+
+    .modal[style*="display: flex"] .modal-content {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      padding: 24px;
+      border-bottom: 1px solid rgba(227, 0, 27, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #ffffff;
+      border-radius: 12px 12px 0 0;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: #002B5C;
+      font-size: 1.4rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-header h3::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 24px;
+      background: #E3001B;
+      border-radius: 2px;
+    }
+
+    .close-modal {
+      background: none;
+      border: none;
+      color: #6c757d;
+      font-size: 1.2rem;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+      margin-left: auto;
+      margin-right: 10px;
+      padding: 0;
+    }
+
+    .close-modal:hover {
+      background-color: #f8f9fa;
+      color: #dc3545;
+      transform: rotate(90deg);
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .rapport-info {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .info-item .label {
+      font-weight: 600;
+      color: #002B5C;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-item span {
+      color: #333;
+      font-size: 1.1rem;
+      line-height: 1.5;
+      padding: 4px 0;
+    }
+
+    .info-item p {
+      color: #444;
+      font-size: 1rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(227, 0, 27, 0.1);
+      margin: 0;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Custom scrollbar for modal */
+    .modal-content::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .modal-content::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    .modal-content::-webkit-scrollbar-thumb {
+      background: #E3001B;
+      border-radius: 4px;
+    }
+
+    .modal-content::-webkit-scrollbar-thumb:hover {
+      background: #002B5C;
+    }
+
+    .rapport-history {
+      margin: 15px 0;
+      padding: 15px;
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-color);
+    }
+
+    .history-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+      gap: 8px;
+    }
+
+    .history-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--text-color);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .history-header h3 i {
+      color: var(--primary-color);
+    }
+
+    .history-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      padding: 20px 0;
+    }
+
+    .history-item {
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid rgba(227, 0, 27, 0.1);
+      padding: 20px;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .history-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-color: rgba(227, 0, 27, 0.2);
+    }
+
+    .history-date {
+      color: #666;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(227, 0, 27, 0.1);
+    }
+
+    .history-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .history-content h4 {
+      color: #002B5C;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .history-content p {
+      color: #666;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+
+    .history-meta {
+      display: flex;
+      gap: 16px;
+      margin-top: auto;
+      padding: 20px;
+      border-top: 1px solid rgba(227, 0, 27, 0.1);
+      justify-content: center;
+      align-items: center;
+      background-color: rgba(248, 249, 250, 0.5);
+      border-radius: 0 0 8px 8px;
+      min-height: 80px;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+    }
+    .action-btnn:hover {
+      transform: translateY(-2px);
+    }
+
+    .view-btn {
+      color: #002B5C;
+      background: rgba(0, 43, 92, 0.05);
+    }
+
+    .view-btn:hover {
+      background: rgba(0, 43, 92, 0.1);
+    }
+
+    .delete-btn {
+      color: #E3001B;
+      background: rgba(227, 0, 27, 0.05);
+    }
+
+    .delete-btn:hover {
+      background: rgba(227, 0, 27, 0.1);
+    }
+
+    .action-btn i {
+      font-size: 1rem;
+    }
+
+    .no-data {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 40px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      border: 1px dashed rgba(227, 0, 27, 0.2);
+    }
+
+    .no-data-icon {
+      font-size: 2rem;
+      color: #E3001B;
+      margin-bottom: 16px;
+    }
+
+    .no-data p {
+      color: #666;
+      font-size: 1.1rem;
+      margin: 0;
+    }
+
+    /* Delete Confirmation Modal */
+    .delete-confirmation {
+      max-width: 400px;
+      text-align: center;
+      padding: 0;
+    }
+
+    .delete-confirmation .modal-header {
+      background: #fff;
+      border-bottom: 1px solid rgba(227, 0, 27, 0.1);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .delete-confirmation .modal-header h3 {
+      color: #dc3545;
+      font-size: 1.4rem;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      padding-left: 10px;
+      gap: 12px;
+    }
+
+    .delete-confirmation .modal-header h3::before {
+      content: '\f071';
+      font-family: 'Font Awesome 5 Free';
+      font-weight: 900;
+      color: #dc3545;
+      font-size: 1.3rem;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .delete-confirmation .modal-body {
+      padding: 30px 20px;
+    }
+
+    .warning-icon {
+      color: #dc3545;
+      font-size: 48px;
+      margin-bottom: 20px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .delete-confirmation .modal-footer {
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      border-top: 1px solid rgba(227, 0, 27, 0.1);
+    }
+
+    .btn {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+    }
+
+    .btn i {
+      font-size: 1rem;
+    }
+
+    .btn-secondary {
+      background-color: #f8f9fa;
+      color: #495057;
+      border: 1px solid #dee2e6;
+    }
+
+    .btn-secondary:hover {
+      background-color: #e9ecef;
+      transform: translateY(-2px);
+    }
+
+    .btn-danger {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: #c82333;
+      transform: translateY(-2px);
+    }
+
+    #deleteConfirmationText {
+      color: #495057;
+      font-size: 1.1rem;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    /* Status Badge Styles */
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-badge.actif {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+    }
+
+    .status-badge.en-conge {
+      background-color: #fff3e0;
+      color: #ef6c00;
+      border: 1px solid #ffe0b2;
+    }
+
+    .status-badge.pending {
+      background-color: #e3f2fd;
+      color: #1976d2;
+      border: 1px solid #bbdefb;
+    }
+
+    .status-badge.rejected {
+      background-color: #ffebee;
+      color: #c62828;
+      border: 1px solid #ffcdd2;
+    }
+
+    /* Filter Styles */
+    .employee-filters {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid rgba(227, 0, 27, 0.1);
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .filter-group label {
+      font-weight: 500;
+      color: #002B5C;
+      min-width: 80px;
+    }
+
+    .filter-group select {
+      padding: 8px 12px;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      background-color: white;
+      color: #495057;
+      font-size: 0.95rem;
+      min-width: 200px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .filter-group select:hover {
+      border-color: #E3001B;
+    }
+
+    .filter-group select:focus {
+      outline: none;
+      border-color: #E3001B;
+      box-shadow: 0 0 0 2px rgba(227, 0, 27, 0.1);
+    }
+
+    .reports-container {
+      width: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .report-card {
+      width: 100%;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .report-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .report-header h3 {
+      margin: 0;
+      color: #002B5C;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .report-filters {
+      padding: 0 24px;
+    }
+
+    .report-body {
+      position: relative;
+      width: 100%;
+      height: 600px;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    #effectifEvolutionChart {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* Recent Leave Requests Styling */
+    .recent-leaves {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(227, 0, 27, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .recent-leaves:hover {
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-header {
+      padding: 24px;
+      border-bottom: 1px solid rgba(227, 0, 27, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-header h3 {
+      margin: 0;
+      color: #002B5C;
+      font-size: 1.3rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .card-header h3 i {
+      color: #E3001B;
+      font-size: 1.2rem;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid rgba(227, 0, 27, 0.1);
+      background: #ffffff;
+      color: #002B5C;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      background: #f8f9fa;
+      color: #E3001B;
+      transform: translateY(-2px);
+    }
+
+    .leave-requests-list {
+      padding: 16px;
+    }
+
+    .leave-request-item {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid rgba(227, 0, 27, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .leave-request-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      border-color: rgba(227, 0, 27, 0.2);
+    }
+
+    .leave-employee {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .employee-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .employee-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .employee-info h4 {
+      margin: 0 0 4px 0;
+      color: #002B5C;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .employee-info p {
+      margin: 0;
+      color: #6B7280;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .employee-info p i {
+      color: #E3001B;
+      font-size: 0.9rem;
+    }
+
+    .leave-status {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-badge {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .status-badge.pending {
+      background-color: #FEF3C7;
+      color: #92400E;
+      border: 1px solid #FDE68A;
+    }
+
+    .status-badge.approved {
+      background-color: #D1FAE5;
+      color: #065F46;
+      border: 1px solid #A7F3D0;
+    }
+
+    .status-badge.rejected {
+      background-color: #FEE2E2;
+      color: #991B1B;
+      border: 1px solid #FECACA;
+    }
+
+    .request-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid rgba(227, 0, 27, 0.1);
+      background: #ffffff;
+      color: #002B5C;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:hover {
+      background: #f8f9fa;
+      color: #E3001B;
+      transform: translateY(-2px);
+    }
+
+    .view-all-link {
+      padding: 16px;
+      text-align: center;
+      border-top: 1px solid rgba(227, 0, 27, 0.1);
+    }
+
+    .btn-text {
+      color: #002B5C;
+      text-decoration: none;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-text:hover {
+      color: #E3001B;
+      transform: translateX(4px);
+    }
+
+    .btn-text i {
+      font-size: 0.9rem;
+      transition: transform 0.2s ease;
+    }
+
+    .btn-text:hover i {
+      transform: translateX(4px);
+    }
+
+    .no-data {
+      padding: 40px 20px;
+      text-align: center;
+      background: #f8f9fa;
+      border-radius: 12px;
+      border: 1px dashed rgba(227, 0, 27, 0.2);
+    }
+
+    .no-data-icon {
+      font-size: 2.5rem;
+      color: #E3001B;
+      margin-bottom: 16px;
+      opacity: 0.8;
+    }
+
+    .no-data p {
+      color: #6B7280;
+      font-size: 1.1rem;
+      margin: 0;
+    }
+
+    .approved-leaves-container {
+      padding: 20px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(227, 0, 27, 0.1);
+    }
+
+    .search-box {
+      position: relative;
+      flex: 1;
+      min-width: 300px;
+    }
+
+    .search-box input {
+      width: 100%;
+      height: 42px;
+      padding: 0 42px 0 16px;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #1F2937;
+      background: #F9FAFB;
+      transition: all 0.2s ease;
+    }
+
+    .search-box input::placeholder {
+      color: #9CA3AF;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: #E3001B;
+      background: #FFFFFF;
+      box-shadow: 0 0 0 3px rgba(227, 0, 27, 0.1);
+    }
+
+    .search-box i {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9CA3AF;
+      font-size: 1rem;
+      pointer-events: none;
+      transition: color 0.2s ease;
+    }
+
+    .search-box input:focus + i {
+      color: #E3001B;
+    }
+
+    .date-filter {
+      position: relative;
+      min-width: 200px;
+    }
+
+    .date-filter input {
+      width: 100%;
+      height: 42px;
+      padding: 0 16px;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #1F2937;
+      background: #F9FAFB;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .date-filter input::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.6;
+      transition: opacity 0.2s ease;
+    }
+
+    .date-filter input::-webkit-calendar-picker-indicator:hover {
+      opacity: 1;
+    }
+
+    .date-filter input:focus {
+      outline: none;
+      border-color: #E3001B;
+      background: #FFFFFF;
+      box-shadow: 0 0 0 3px rgba(227, 0, 27, 0.1);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .filters {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .search-box,
+      .date-filter {
+        min-width: 100%;
+      }
+    }
+
+    .approved-leaves-container .search-box {
+      position: relative;
+      flex: 1;
+      min-width: 300px;
+      display: flex;
+      align-items: center;
+    }
+
+    .approved-leaves-container .search-box input {
+      width: 100%;
+      height: 42px;
+      padding: 0 16px;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #1F2937;
+      background: #F9FAFB;
+      transition: all 0.2s ease;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .approved-leaves-container .search-box input::placeholder {
+      color: #9CA3AF;
+      opacity: 0.8;
+    }
+
+    .approved-leaves-container .search-box input:focus {
+      outline: none;
+      border-color: #E3001B;
+      background: #FFFFFF;
+      box-shadow: 0 0 0 3px rgba(227, 0, 27, 0.1);
+    }
+
+    .approved-leaves-container .search-box .search-icon {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9CA3AF;
+      font-size: 1rem;
+      pointer-events: none;
+      transition: all 0.2s ease;
+    }
+
+    .approved-leaves-container .search-box input:focus + .search-icon {
+      color: #E3001B;
+    }
+
+    .role-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .role-badge.directeur {
+      background-color: #E3001B;
+      color: white;
+    }
+
+    .role-badge.sous-directeur {
+      background-color: #002B5C;
+      color: white;
+    }
+
+    .role-badge.chef-de-departement {
+      background-color: #1E40AF;
+      color: white;
+    }
+
+    .role-badge.employe {
+      background-color: #4B5563;
+      color: white;
+    }
+
+    .employee-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .employee-info img {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .employee-info span {
+      font-weight: 500;
+      color: #1F2937;
+    }
+
+    .btn-send {
+      background: #E3001B;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-send:hover {
+      background: #cc0018;
+      transform: translateY(-2px);
+    }
+
+    .btn-send i {
+      font-size: 1rem;
+    }
+
+    .btn-download {
+      background: #002B5C;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-download:hover {
+      background: #001f41;
+      transform: translateY(-2px);
+    }
+
+    .btn-generate {
+      background: #4B5563;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-generate:hover {
+      background: #374151;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-generate:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-generate i {
+      font-size: 1rem;
+      transition: transform 0.3s ease;
+    }
+
+    .btn-generate:hover i {
+      transform: scale(1.1);
+    }
+
+    /* Add these styles to your existing CSS */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        align-items: center;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 2000;
+        animation: slideIn 0.3s ease-out;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .notification.success {
+        background: #002B5C;
+        color: #ffffff;
+        border-left: 4px solid #E3001B;
+    }
+
+    .notification.error {
+        background: #E3001B;
+        color: #ffffff;
+        border-left: 4px solid #002B5C;
+    }
+
+    .notification.info {
+        background: #002B5C;
+        color: #ffffff;
+        border-left: 4px solid #E3001B;
+    }
+
+    .notification-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .notification-content i {
+        font-size: 1.2rem;
+    }
+
+    .notification-content span {
+        font-size: 0.95rem;
+        letter-spacing: 0.5px;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    .btn-generate {
+        transition: all 0.3s ease;
+    }
+
+    .btn-generate:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    .btn-generate i.fa-spinner {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .action-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+    }
+
+    .action-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .send-btn {
+        color: #007bff;
+    }
+
+    .send-btn:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    .view-btn {
+        color: #28a745;
+    }
+
+    .view-btn:hover {
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+
+    /* Add these styles to your existing CSS */
+    .view-btn.action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        padding: 8px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .view-btn.action-btn:hover {
+        background-color: rgba(224, 142, 152, 0.2);
+        box-shadow: 0 0 10px rgba(224, 142, 152, 0.2);
+       
+    }
+
+    .view-btn.action-btn i {
+        color: red;
+        font-size: 1.2rem;
+    }
+
+    td {
+        text-align: center;
+        vertical-align: middle;
+        letter-spacing: 0.5px;
+    }
+
+    .approved-leaves-table td {
+        padding: 15px 10px;
+        vertical-align: middle;
+        letter-spacing: 0.5px;
+    }
+
+    .approved-leaves-table th {
+        letter-spacing: 0.8px;
+        font-weight: 600;
+    }
+
+    .approved-leaves-table tr {
+        border-bottom: 1px solid rgba(227, 0, 27, 0.1);
+    }
+
+    .approved-leaves-table tr:hover {
+        background-color: rgba(227, 0, 27, 0.02);
+    }
+
+    .approved-leaves-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 0;
+    }
+
+    .approved-leaves-table table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .approved-leaves-table th,
+    .approved-leaves-table td {
+        padding: 15px 10px;
+        text-align: center;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(227, 0, 27, 0.1);
+    }
+
+    .approved-leaves-table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #002B5C;
+        letter-spacing: 0.8px;
+    }
+
+    .approved-leaves-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .approved-leaves-table tr:hover {
+        background-color: rgba(227, 0, 27, 0.02);
+    }
+
+    .view-btnn.action-btnn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 120px;
+        height: 40px;
+        padding: 12px 20px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-radius: 6px;
+        margin: 0 4px;
+    }
+
+    .view-btnn.action-btnn:hover {
+        background-color: rgba(224, 142, 152, 0.2);
+        box-shadow: 0 0 10px rgba(224, 142, 152, 0.2);
+    }
+
+    .view-btnn.action-btnn i {
+        color: red;
+        font-size: 1.2rem;
+    }
+
+    .delete-btn.action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 120px;
+        height: 40px;
+        padding: 12px 20px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-radius: 6px;
+        margin: 0 4px;
+    }
+
+    .delete-btn.action-btn:hover {
+        background-color: rgba(220, 53, 69, 0.1);
+        box-shadow: 0 0 10px rgba(220, 53, 69, 0.1);
+    }
+
+    .delete-btn.action-btn i {
+        color: #dc3545;
+        font-size: 1.2rem;
+    }
+
+    /* Add these styles to your existing CSS */
+    .admin-tasks {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(227, 0, 27, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .admin-tasks:hover {
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    .tasks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
+      padding: 24px;
+    }
+
+    .task-card {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(227, 0, 27, 0.1);
+    }
+
+    .task-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      border-color: rgba(227, 0, 27, 0.2);
+    }
+
+    .task-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(227, 0, 27, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .task-icon i {
+      font-size: 1.5rem;
+      color: #E3001B;
+    }
+
+    .task-info {
+      flex: 1;
+    }
+
+    .task-info h4 {
+      margin: 0 0 8px 0;
+      color: #002B5C;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .task-count {
+      margin: 0 0 4px 0;
+      color: #002B5C;
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .task-status {
+      color: #666;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+      .tasks-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Add styles for the new filter */
+    .filters {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 20px;
+        align-items: center;
+    }
+
+    .document-filter,
+    .message-filter {
+        min-width: 200px;
+        position: relative;
+    }
+
+    .document-filter select,
+    .message-filter select {
+        width: 100%;
+        padding: 8px 12px;
+        padding-right: 35px; /* Make room for the icon */
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        color: #1F2937;
+        background: #F9FAFB;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        appearance: none; /* Remove default dropdown arrow */
+        -webkit-appearance: none;
+        -moz-appearance: none;
+    }
+
+    .document-filter i,
+    .message-filter i {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6B7280;
+        pointer-events: none;
+        transition: color 0.2s ease;
+    }
+
+    .document-filter select:hover,
+    .message-filter select:hover {
+        border-color: #E3001B;
+    }
+
+    .document-filter select:hover + i,
+    .message-filter select:hover + i {
+        color: #E3001B;
+    }
+
+    .document-filter select:focus,
+    .message-filter select:focus {
+        outline: none;
+        border-color: #E3001B;
+        background: #FFFFFF;
+        box-shadow: 0 0 0 3px rgba(227, 0, 27, 0.1);
+    }
+
+    .document-filter select:focus + i,
+    .message-filter select:focus + i {
+        color: #E3001B;
+    }
+
+    /* Style for sent message button */
+    .btn-send.sent {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-send.sent:hover {
+        background: #218838;
+    }
+
+    /* Simplified profile styles */
+    .profile {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 16px;
+        background: #ffffff;
+        border-radius: 8px;
+        border: 1px solid #E5E7EB;
+    }
+
+    .profile-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .profile-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .profile-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .profile-info .name {
+        color: #002B5C;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .profile-info .role {
+        color: #666;
+        font-size: 0.85rem;
+    }
+
+    .profile-dropdown {
+        cursor: pointer;
+        padding: 4px;
+        color: #666;
+    }
+
+    .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        min-width: 180px;
+        padding: 8px;
+        margin-top: 8px;
+        display: none;
+    }
+
+    .profile-dropdown:hover .dropdown-menu {
+        display: block;
+    }
+
+    .dropdown-menu a {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        color: #002B5C;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+
+    .dropdown-menu a:hover {
+        background: #f8f9fa;
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background: #E5E7EB;
+        margin: 4px 0;
+    }
+
+    .dropdown-menu a.logout {
+        color: #E3001B;
+    }
+
+    /* Profile Styles */
+    .profile {
+        display: flex;
+        align-items: center;
+        position: relative;
+        cursor: pointer;
+        padding: 12px 24px;
+        background: #ffffff;
+        border-radius: 12px;
+        border: 1px solid rgba(227, 0, 27, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .profile-avatar {
+        position: relative;
+        width: 48px;
+        height: 48px;
+        margin-right: 16px;
+    }
+
+    .profile-info .name {
+        color: #002B5C;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: color 0.3s ease;
+    }
+
+    .profile-info .role {
+        color: #666;
+        font-size: 0.95rem;
+        transition: color 0.3s ease;
+    }
+
+    .profile:hover {
+        border-color: rgba(227, 0, 27, 0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .profile-dropdown {
+        margin-left: 8px;
+        padding: 4px;
+        color: #666;
+        transition: all 0.3s ease;
+    }
+
+    .profile-dropdown i {
+        font-size: 12px;
+        transition: transform 0.3s ease;
+    }
+
+    .profile:hover .profile-dropdown i {
+        transform: rotate(180deg);
+        color: #E3001B;
+    }
+
+    .dropdown-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        min-width: 200px;
+        padding: 8px;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(227, 0, 27, 0.1);
+    }
+
+    .profile:hover .dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .dropdown-menu a {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        color: #002B5C;
+        text-decoration: none;
+        font-size: 0.9rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .dropdown-menu a:hover {
+        background: rgba(227, 0, 27, 0.05);
+        color: #E3001B;
+    }
+
+    .dropdown-menu a i {
+        font-size: 1rem;
+        width: 20px;
+        text-align: center;
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background: rgba(227, 0, 27, 0.1);
+        margin: 8px 0;
+    }
+
+    .dropdown-menu a.logout {
+        color: #E3001B;
+    }
+
+    .dropdown-menu a.logout:hover {
+        background: rgba(227, 0, 27, 0.1);
+    }
+
+    /* Notification Button Styles */
+    .notification-btn {
+        position: relative;
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border: 1px solid rgba(227, 0, 27, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .notification-btn:hover {
+        transform: translateY(-2px);
+        border-color: rgba(227, 0, 27, 0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        background: linear-gradient(135deg, #ffffff 0%, #fff5f5 100%);
+    }
+
+    .notification-btn i {
+        font-size: 1.1rem;
+        color: #002B5C;
+        transition: all 0.3s ease;
+    }
+
+    .notification-btn:hover i {
+        color: #E3001B;
+        transform: scale(1.1);
+    }
+
+    .notification-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: #E3001B;
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 600;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #ffffff;
+        box-shadow: 0 2px 4px rgba(227, 0, 27, 0.2);
+        padding: 0 4px;
+    }
+
+    /* Profile Styles */
+    .profile {
+        display: flex;
+        align-items: center;
+        position: relative;
+        cursor: pointer;
+        padding: 8px 16px;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-radius: 12px;
+        border: 1px solid rgba(227, 0, 27, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .profile:hover {
+        transform: translateY(-2px);
+        border-color: rgba(227, 0, 27, 0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        background: linear-gradient(135deg, #ffffff 0%, #fff5f5 100%);
+    }
+
+    .profile-avatar {
+        position: relative;
+        width: 40px;
+        height: 40px;
+        margin-right: 12px;
+    }
+
+    .profile-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 10px;
+        object-fit: cover;
+        border: 2px solid #002B5C;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .profile:hover .profile-avatar img {
+        transform: scale(1.05);
+        border-color: #E3001B;
+    }
+
+    .profile-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .profile-info .name {
+        color: #002B5C;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: color 0.3s ease;
+    }
+
+    .profile-info .role {
+        color: #666;
+        font-size: 0.85rem;
+        transition: color 0.3s ease;
+    }
+
+    .profile:hover .profile-info .name {
+        color: #E3001B;
+    }
+
+    .profile-dropdown {
+        margin-left: 8px;
+        padding: 4px;
+        color: #666;
+        transition: all 0.3s ease;
+    }
+
+    .profile-dropdown i {
+        font-size: 12px;
+        transition: transform 0.3s ease;
+    }
+
+    .profile:hover .profile-dropdown i {
+        transform: rotate(180deg);
+        color: #E3001B;
+    }
+
+    .dropdown-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        min-width: 200px;
+        padding: 8px;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(227, 0, 27, 0.1);
+    }
+
+    .profile:hover .dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .dropdown-menu a {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        color: #002B5C;
+        text-decoration: none;
+        font-size: 0.9rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .dropdown-menu a:hover {
+        background: rgba(227, 0, 27, 0.05);
+        color: #E3001B;
+    }
+
+    .dropdown-menu a i {
+        font-size: 1rem;
+        width: 20px;
+        text-align: center;
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background: rgba(227, 0, 27, 0.1);
+        margin: 8px 0;
+    }
+
+    .dropdown-menu a.logout {
+        color: #E3001B;
+    }
+
+    .dropdown-menu a.logout:hover {
+        background: rgba(227, 0, 27, 0.1);
+    }
+
+    /* Add this to your existing styles */
+    .notification-popup {
+        position: fixed;
+        top: 100px; /* Adjust based on your header height */
+        right: 22px;
+        width: 320px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        border: 1px solid rgba(227, 0, 27, 0.08);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1000;
+        overflow: hidden;
+    }
+
+    .notification-popup.active {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .notification-header {
+        padding: 20px;
+        border-bottom: 1px solid rgba(227, 0, 27, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(227, 0, 27, 0.02);
+    }
+
+    .notification-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #002B5C;
+    }
+
+    .clear-notifications {
+        background: none;
+        border: none;
+        color: #002B5C;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .clear-notifications:hover {
+        background: rgba(227, 0, 27, 0.08);
+        color: #E3001B;
+    }
+
+    .notification-list {
+        max-height: 400px;
+        overflow-y: auto;
+        padding: 8px;
+    }
+
+    .notification-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .notification-list::-webkit-scrollbar-track {
+        background: rgba(227, 0, 27, 0.04);
+        border-radius: 3px;
+    }
+
+    .notification-list::-webkit-scrollbar-thumb {
+        background: rgba(227, 0, 27, 0.2);
+        border-radius: 3px;
+    }
+
+    .notification-item {
+        padding: 16px;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        background: white;
+        border: 1px solid rgba(227, 0, 27, 0.08);
+        transition: all 0.2s ease;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .notification-item:hover {
+        background: rgba(227, 0, 27, 0.02);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .notification-item.unread {
+        background: rgba(227, 0, 27, 0.04);
+    }
+
+    .notification-item.unread::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 70%;
+        background: #E3001B;
+        border-radius: 0 2px 2px 0;
+    }
+
+    .notification-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .notification-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(227, 0, 27, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .notification-icon i {
+        font-size: 1.2rem;
+        color: #E3001B;
+    }
+
+    .notification-details {
+        flex: 1;
+    }
+
+    .notification-title {
+        font-weight: 600;
+        color: #002B5C;
+        margin-bottom: 4px;
+        font-size: 0.95rem;
+    }
+
+    .notification-message {
+        color: #666;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        margin-bottom: 8px;
+    }
+
+    .notification-time {
+        font-size: 0.8rem;
+        color: #888;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .notification-time i {
+        font-size: 0.75rem;
+    }
+
+    .notification-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(227, 0, 27, 0.08);
+    }
+
+    .notification-actions button {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .notification-actions .approve-btn {
+        background: rgba(0, 200, 83, 0.1);
+        color: #00C853;
+    }
+
+    .notification-actions .approve-btn:hover {
+        background: rgba(0, 200, 83, 0.2);
+    }
+
+    .notification-actions .reject-btn {
+        background: rgba(227, 0, 27, 0.1);
+        color: #E3001B;
+    }
+
+    .notification-actions .reject-btn:hover {
+        background: rgba(227, 0, 27, 0.2);
+    }
+
+    /* Add styles for the send button */
+    .send-document-btn {
+        background: none;
+        border: none;
+        color: #4CAF50;
+        cursor: pointer;
+        padding: 5px;
+        transition: transform 0.2s;
+    }
+
+    .send-document-btn:hover {
+        transform: scale(1.1);
+    }
+
+    /* Notification styles */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        border-radius: 5px;
+        background: white;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        transform: translateX(120%);
+        transition: transform 0.3s ease-in-out;
+        z-index: 1000;
+    }
+
+    .notification.show {
+        transform: translateX(0);
+    }
+
+    .notification.success {
+        border-left: 4px solid #4CAF50;
+    }
+
+    .notification.error {
+        border-left: 4px solid #f44336;
+    }
+
+    .notification-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .notification i {
+        font-size: 1.2em;
+    }
+
+    .notification.success i {
+        color: #4CAF50;
+    }
+
+    .notification.error i {
+        color: #f44336;
+    }
+  </style>
+  <script src="/js/admin-portal.js"></script>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="logo">
+      <img src="imgs/logo.png" alt="logo" width="200">
+    </div>
+    <nav>
+      <a href="#dashboard" class="active" data-section="dashboard">
+        <i class="fas fa-home"></i><span>Tableau de Bord</span>
+      </a>
+      <a href="#responsables" data-section="responsables">
+        <i class="fas fa-user-tie"></i><span>Directeur</span>
+      </a>
+      <a href="#departments" data-section="departments">
+        <i class="fas fa-building"></i><span>Directions</span>
+      </a>
+      <a href="#reports" data-section="reports">
+        <i class="fas fa-chart-line"></i><span>Rapports</span>
+      </a>
+      <a href="#approved-leaves" data-section="approved-leaves">
+        <i class="fas fa-file-alt"></i><span>Demandes Approuvées</span>
+      </a>
+    </nav>
+    <div class="logout-container">
+      <a href="/logout" data-section="logout">
+        <i class="fas fa-sign-out-alt"></i><span>Déconnexion</span>
+      </a>
+    </div>
+  </div>
+
+  <main>
+    <header>
+      <div class="page-title">
+        <h1 id="currentPageTitle">Tableau de Bord Administration</h1>
+      </div>
+      <div class="user-info">
+        <button class="notification-btn" title="Notifications">
+          <i class="fas fa-bell"></i>
+          <span class="notification-badge">3</span>
+        </button>
+        <div class="profile">
+          <div class="profile-avatar">
+            <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(user.nomcomplet) %>&background=002B5C&color=fff" alt="Profile" id="profileImage">
+          </div>
+          <div class="profile-info">
+            <span class="name"><%= user.nomcomplet %></span>
+            <span class="role">Administrateur</span>
+          </div>
+          <div class="profile-dropdown">
+            <i class="fas fa-chevron-down"></i>
+            <div class="dropdown-menu">
+              <a href="#profile"><i class="fas fa-user"></i> Mon Profil</a>
+              <a href="#settings"><i class="fas fa-cog"></i> Paramètres</a>
+              <a href="#help"><i class="fas fa-question-circle"></i> Aide</a>
+              <div class="dropdown-divider"></div>
+              <a href="/logout" class="logout"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- Move notification popup outside header -->
+    <div class="notification-popup">
+        <div class="notification-header">
+            <h3>Notifications</h3>
+            <button class="clear-notifications" title="Marquer tout comme lu">
+                <i class="fas fa-check-double"></i>
+            </button>
+        </div>
+        <div class="notification-list">
+            <!-- Notifications will be dynamically added here -->
+        </div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <section id="dashboard" class="section active">
+      <div class="dashboard-header" style="
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 32px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(227, 0, 27, 0.1);
+      ">
+        <div style="
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        ">
+          <h2 style="
+            color: #002B5C;
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          ">
+            <i class="fas fa-chart-line" style="color: #E3001B;"></i>
+            Tableau de Bord
+          </h2>
+          <div style="
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            border: 1px solid rgba(227, 0, 27, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+          ">
+            <div style="
+              width: 48px;
+              height: 48px;
+              border-radius: 12px;
+              background: #002B5C;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-size: 1.5rem;
+              box-shadow: 0 4px 12px rgba(0, 43, 92, 0.2);
+            ">
+              <i class="fas fa-user-shield"></i>
+            </div>
+            <div style="
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+            ">
+              <h3 style="
+                color: #002B5C;
+                font-size: 1.2rem;
+                font-weight: 600;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              ">
+                <i class="fas fa-building" style="color: #E3001B; font-size: 1rem;"></i>
+                Administration de la Direction: <span style="color: #002B5C; font-weight: 600;"><%= currentDirection.nom %></span>
+              </h3>
+              <div style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: #666;
+                font-size: 1rem;
+              ">
+                <span style="
+                  color: #002B5C;
+                  font-weight: 500;
+                "><%= user.nomcomplet %></span>
+                <span style="
+                  padding: 4px 12px;
+                  background: rgba(227, 0, 27, 0.1);
+                  color: #E3001B;
+                  border-radius: 20px;
+                  font-size: 0.9rem;
+                  font-weight: 500;
+                ">Administrateur</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="overview-banner">
+        <div class="overview-content">
+          <div class="overview-title">
+            <i class="fas fa-chart-line"></i>
+            <h3>Aperçu des Directions</h3>
+          </div>
+          <p>Bienvenue dans votre tableau de bord d'administration. Depuis cette interface, vous pouvez gérer efficacement tous les aspects des directions.</p>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="grid-item admin-tasks" style="grid-column: 1 / -1;">
+          <div class="card-header">
+            <h3><i class="fas fa-tasks"></i> Tâches Administratives</h3>
+            <div class="card-actions">
+              <button class="action-btn" title="Rafraîchir">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+            </div>
+          </div>
+          <div class="admin-tasks-content">
+            <div class="tasks-grid">
+              <div class="task-card">
+                <div class="task-icon">
+                  <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="task-info">
+                  <h4>Documents à Générer</h4>
+                  <p class="task-count"><%= stats.documentsToGenerate || 0 %></p>
+                  <span class="task-status">En attente</span>
+                </div>
+              </div>
+              <div class="task-card">
+                <div class="task-icon">
+                  <i class="fas fa-users"></i>
+                </div>
+                <div class="task-info">
+                  <h4>Employés Actifs</h4>
+                  <p class="task-count"><%= stats.activeCount || 0 %></p>
+                  <span class="task-status">Total</span>
+                </div>
+              </div>
+              <div class="task-card">
+                <div class="task-icon">
+                  <i class="fas fa-building"></i>
+                </div>
+                <div class="task-info">
+                  <h4>Sous-directions</h4>
+                  <p class="task-count"><%= allsousdirectionsinfovar.length %></p>
+                  <span class="task-status">Gérées</span>
+                </div>
+              </div>
+              <div class="task-card">
+                <div class="task-icon">
+                  <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="task-info">
+                  <h4>Rapports</h4>
+                  <p class="task-count"><%= stats.reportsCount || 0 %></p>
+                  <span class="task-status">Générés</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Responsables Section -->
+    <section id="responsables" class="section">
+      <div class="section-header">
+        <h2>Gestion du Directeur</h2>
+      </div>
+
+      <div class="card responsable-card">
+        <div class="avatar">
+          <img src="<%= responsable.avatarUrl || 'https://ui-avatars.com/api/?name=Responsable' %>"
+               alt="Avatar">
+        </div>
+        <div class="details">
+          <h3><%= responsable.nomcomplet || 'Aucun responsable trouvé' %></h3>
+          <% if (responsable.email) { %>
+            <p><i class="fas fa-envelope"></i>
+              <a href="mailto:<%= responsable.email %>">
+                <%= responsable.email %>
+              </a>
+            </p>
+          <% } %>
+          <% if (responsable.telephone) { %>
+            <p><i class="fas fa-phone"></i> <%= responsable.telephone %></p>
+          <% } %>
+          <% if (responsable.fonction) { %>
+            <p><i class="fas fa-clipboard-list"></i>
+              Fonction : <%= responsable.fonction %>
+            </p>
+          <% } %>
+          <% if (responsable.matricule) { %>
+            <p><i class="fas fa-id-badge"></i>
+              Matricule : <%= responsable.matricule %>
+            </p>
+          <% } %>
+          <% if (responsable.date_entree) { %>
+            <p><i class="fas fa-calendar-alt"></i>
+              Date d'entrée : <%= new Date(responsable.date_entree).toLocaleDateString('fr-FR') %>
+            </p>
+          <% } %>
+        </div>
+      </div>
+    </section>
+
+    <!-- Departments Section -->
+    <section id="departments" class="section">
+      <div class="section-header">
+        <h2>Gestion des Directions</h2>
+        <div class="controls">
+          <div class="search-filter">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchEmployee" placeholder="Rechercher un employé...">
+          </div>
+        </div>
+      </div>
+      
+      <div class="department-summary">
+        <div class="summary-item">
+          <i class="fas fa-building"></i>
+          <h3>Sous-directions</h3>
+          <p>Total: <%= allsousdirectionsinfovar.length %></p>
+        </div>
+        <div class="summary-item">
+          <i class="fas fa-users"></i>
+          <h3>Employés</h3>
+          <p><span class="tag tag-active">Actifs: <%= stats.activeCount %></span> <span class="tag tag-leave">En congé: <%= stats.leaveCount %></span></p>
+        </div>
+      </div>
+      
+      <div class="employee-filters">
+        <div class="filter-group">
+          <label for="sousDirectionSelect">Sous-direction :</label>
+          <select id="sousDirectionSelect">
+            <option value="">Toutes</option>
+            <% allsousdirectionsinfovar.forEach(sd => { %>
+              <option value="<%= sd.id %>"
+                <%= sd.id === selectedSousDirectionId ? 'selected' : '' %>>
+                <%= sd.nom %>
+              </option>
+            <% }); %>
+          </select>
+        </div>
+      </div>
+
+      <div class="employees-table-container">
+        <table class="employees-table">
+          <thead>
+            <tr>
+              <th width="30%">
+                <div class="th-content">
+                  Employé
+                  <i class="fas fa-sort"></i>
+                </div>
+              </th>
+              <th width="25%">
+                <div class="th-content">
+                  Fonction
+                  <i class="fas fa-sort"></i>
+                </div>
+              </th>
+              <th width="20%">
+                <div class="th-content">
+                  Sous-direction
+                  <i class="fas fa-sort"></i>
+                </div>
+              </th>
+              <th width="15%">
+                <div class="th-content">
+                  Statut
+                  <i class="fas fa-sort"></i>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <% allemployeesinfo.forEach((emp, index) => { %>
+              <tr class="employee-row" data-index="<%= index %>" 
+                  data-sous-direction-id="<%= emp.sous_direction_id %>" 
+                  data-fonction="<%= emp.fonction %>" 
+                  data-statut="<%= emp.conge === 1 ? 'En Congé' : 'Actif' %>"
+                  data-nom="<%= emp.nomcomplet %>">
+                <td><%= emp.nomcomplet %></td>
+                <td><%= emp.fonction %></td>
+                <td><%= emp.sous_direction %></td>
+                <td><span class="status-badge <%= emp.conge === 1 ? 'en-conge' : 'actif' %>"><%= emp.conge === 1 ? 'En congé' : 'Actif' %></span></td>
+                </tr>
+              <% }) %>
+          </tbody>
+        </table>
+        
+        <!-- Pagination -->
+        <div class="pagination">
+          <button class="pagination-btn" disabled>
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div class="page-numbers">
+            <span class="current-page">1</span>
+            <span>sur 1</span>
+          </div>
+          <button class="pagination-btn" disabled>
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reports Section -->
+    <section id="reports" class="section">
+      <div class="section-header">
+        <h2>Rapports</h2>
+        <div class="controls">
+          <button class="btn-primary" id="createReportBtn">
+            <i class="fas fa-plus"></i> Nouveau Rapport
+          </button>
+        </div>
+      </div>
+      
+      <!-- Rapport Details Modal -->
+      <div id="rapportDetailsModal" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 id="rapportTitle">Détails du Rapport</h3>
+            <button class="close-modal">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="rapport-info">
+              <div class="info-item">
+                <span class="label">Date:</span>
+                <span id="rapportDate"></span>
+              </div>
+              <div class="info-item">
+                <span class="label">Type:</span>
+                <span id="rapportType"></span>
+              </div>
+              <div class="info-item">
+                <span class="label">Description:</span>
+                <p id="rapportDescription"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rapport History Section -->
+      <div class="rapport-history">
+        <div class="history-header">
+          <h3><i class="fas fa-history"></i> Historique des Rapports Récents</h3>
+        </div>
+        <div class="history-list">
+          <% if (typeof rapports !== 'undefined' && rapports && rapports.length > 0) { %>
+            <% rapports.forEach(rapport => { %>
+             
+              <div class="history-item" data-description="<%= rapport.contenu || '' %>">
+                <div class="history-date"><%= rapport.date || new Date().toLocaleDateString() %></div>
+                <div class="history-content">
+                  <h4><%= rapport.title %></h4>
+                  <p><%= rapport.type || 'Type non spécifié' %></p>
+                  <div class="description" style="display: none;"><%= rapport.contenu || 'Aucune description disponible' %></div>
+                  <div class="history-meta">
+                    <button class="view-btnn action-btnn" title="Voir les détails">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="delete-btn action-btn" title="Supprimer">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <div class="no-data">
+              <i class="fas fa-history no-data-icon"></i>
+              <p>Aucun rapport disponible</p>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Original content -->
+      <div class="reports-container">
+        <div id="reportFormPopup" class="report-form-popup">
+          <div class="report-form-content">
+            <h3>Nouveau Rapport</h3>
+            <form id="reportForm">
+              <div class="form-group">
+                <label for="reportTitle">Titre du Rapport</label>
+                <input type="text" id="reportTitle" name="title" required>
+              </div>
+              <div class="form-group">
+                <label for="reportType">Type de Rapport</label>
+                <select id="reportType" name="type" required>
+                  <option value="">Sélectionnez un type</option>
+                  <option value="statistique">Statistique</option>
+                  <option value="performance">Performance</option>
+                  <option value="conge">Congés</option>
+                  <option value="autre">Autre</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="reportPeriod">Période</label>
+                <div class="date-range">
+                  <input type="date" id="startDate" name="startDate" required>
+                  <span>à</span>
+                  <input type="date" id="endDate" name="endDate" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="reportDescription">Description</label>
+                <textarea id="reportDescription" name="description" rows="4" required></textarea>
+              </div>
+              <div class="form-buttons">
+                <button type="submit" class="btn-primary">
+                  <i class="fas fa-save"></i> Enregistrer
+                </button>
+                <button type="button" class="btn-secondary" id="closeReportForm">
+                  <i class="fas fa-times"></i> Annuler
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="report-card" style="width: 100%; margin: 0;">
+          <div class="report-header">
+            <h3>Évolution des Effectifs</h3>
+          </div>
+          <div class="report-filters" style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center;">
+            <label for="monthSelect">Mois :</label>
+            <select id="monthSelect">
+              <option value="">Tous les mois</option>
+              <option value="1">Janvier</option>
+              <option value="2">Février</option>
+              <option value="3">Mars</option>
+              <option value="4">Avril</option>
+              <option value="5">Mai</option>
+              <option value="6">Juin</option>
+              <option value="7">Juillet</option>
+              <option value="8">Août</option>
+              <option value="9">Septembre</option>
+              <option value="10">Octobre</option>
+              <option value="11">Novembre</option>
+              <option value="12">Décembre</option>
+            </select>
+            <label for="yearSelect">Année :</label>
+            <select id="yearSelect">
+              <option value="">Toutes les années</option>
+            </select>
+            <label for="viewTypeSelect">Type de vue :</label>
+            <select id="viewTypeSelect">
+              <option value="daily">Vue journalière</option>
+              <option value="weekly">Vue hebdomadaire</option>
+              <option value="monthly">Vue mensuelle</option>
+            </select>
+          </div>
+          <div class="report-body" style="width: 100%; height: 600px; padding: 24px; background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: relative;">
+            <canvas id="effectifEvolutionChart" style="width: 100% !important; height: 100% !important;"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Approved Leave Requests Section as a separate section for sidebar navigation -->
+    <section id="approved-leaves" class="section">
+      <div class="approved-leaves-section">
+        <div class="section-header">
+            <h2><i class="fas fa-file-alt"></i> Demandes Approuvées</h2>
+            <div class="section-actions">
+                <button class="btn-primary" id="generateAllDocuments">
+                    <i class="fas fa-file-download"></i> Générer Tous les Documents
+                </button>
+            </div>
+        </div>
+        <div class="approved-leaves-container">
+            <div class="filters">
+                <div class="search-box">
+                    <input type="text" id="searchApprovedLeaves" placeholder="Rechercher un employé...">
+                </div>
+                <div class="document-filter">
+                    <select id="documentStatusFilter">
+                        <option value="">Tous les documents</option>
+                        <option value="generated">Documents Générés</option>
+                        <option value="not-generated">Documents Non Générés</option>
+                    </select>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="message-filter">
+                    <select id="messageStatusFilter">
+                        <option value="">Tous les messages</option>
+                        <option value="sent">Messages Envoyés</option>
+                        <option value="not-sent">Messages Non Envoyés</option>
+                    </select>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </div>
+            <div class="approved-leaves-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Employé</th>
+                            <th>Rôle</th>
+                            <th>Type de Congé</th>
+                            <th>Date de Début</th>
+                            <th>Date de Fin</th>
+                            <th>Document</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (leaveRequests && leaveRequests.length > 0) { %>
+                            <% 
+                            // Filter requests for the current direction and only approved ones (etat = 1)
+                            const directionRequests = leaveRequests.filter(req => {
+                                return req.direction_id === currentDirection.id && req.etat === 1;
+                            });
+                            // Sort requests by name
+                            directionRequests.sort((a, b) => a.nomcomplet.localeCompare(b.nomcomplet));
+                            %>
+                            <% if (directionRequests.length > 0) { %>
+                                <% directionRequests.forEach(request => { %>
+                                    <tr data-request-id="<%= request.id %>">
+                                        <td>
+                                            <div class="employee-info">
+                                                <img src="https://ui-avatars.com/api/?name=<%= encodeURIComponent(request.nomcomplet) %>&background=random" alt="Avatar">
+                                                <span><%= request.nomcomplet %></span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="role-badge">
+                                                <%= request.fonction || request.fonction_nom || 'N/A' %>
+                                            </span>
+                                        </td>
+                                        <td><%= request.nature %></td>
+                                        <td><%= new Date(request.date_debut).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) %></td>
+                                        <td><%= new Date(request.date_fin).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) %></td>
+                                        <td>
+                                            <% if (request.document_generated) { %>
+                                                <button class="view-btn action-btn" title="Voir le document" onclick="viewDocument('<%= request.id %>')">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            <% } else { %>
+                                                <button class="btn-generate" onclick="generateDocument('<%= request.id %>')">
+                                                    <i class="fas fa-file-alt"></i> Générer
+                                                </button>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <div class="table-actions">
+                                                <button class="send-document-btn" data-id="<%= request.id %>" title="Envoyer le document">
+                                                    <i class="fas fa-paper-plane"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="7" class="no-data">
+                                        <i class="fas fa-inbox"></i>
+                                        <p>Aucune demande approuvée trouvée pour cette direction</p>
+                                    </td>
+                                </tr>
+                            <% } %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="7" class="no-data">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>Aucune demande approuvée trouvée</p>
+                                </td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+            <!-- Pagination Controls for Approved Leaves -->
+            <div class="pagination approved-leaves-pagination" style="margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 15px;">
+                <button class="pagination-btn" id="approvedLeavesPrevBtn" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="page-numbers" id="approvedLeavesPageNumbers">
+                    <span class="current-page">1</span>
+                    <span>sur 1</span>
+                </div>
+                <button class="pagination-btn" id="approvedLeavesNextBtn" disabled>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmationModal" class="modal" style="display: none;">
+      <div class="modal-content delete-confirmation">
+        <div class="modal-header">
+          <h3>Confirmation de suppression</h3>
+          <button class="close-modal" id="closeDeleteModalBtn">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <i class="fas fa-exclamation-triangle warning-icon"></i>
+          <p id="deleteConfirmationText"></p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="cancelDeleteBtn">
+            <i class="fas fa-times"></i>
+            Annuler
+          </button>
+          <button class="btn btn-danger" id="confirmDeleteBtn">
+            <i class="fas fa-trash"></i>
+            Supprimer
+          </button>
+        </div>
+      </div>
+    </div>
+   
+  </main>
+
+  <!-- Load Chart.js first -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Chart Initialization -->
+  <script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        console.log('DOM loaded, initializing chart...');
+        const ctx = document.getElementById('effectifEvolutionChart').getContext('2d');
+        if (!ctx) {
+            console.error('Chart canvas not found!');
+            return;
+        }
+
+        // Create chart with empty data
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Nombre d\'employés en congé',
+                    data: [],
+                    borderColor: '#7C3AED',
+                    backgroundColor: 'rgba(124, 58, 237, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#7C3AED',
+                    pointBorderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointHoverBackgroundColor: '#ffffff',
+                    pointHoverBorderColor: '#7C3AED',
+                    pointHoverBorderWidth: 3,
+                    segment: {
+                        borderColor: ctx => {
+                            const gradient = ctx.p0.parsed.y > ctx.p1.parsed.y ? 
+                                'rgba(124, 58, 237, 0.8)' : 
+                                'rgba(236, 72, 153, 0.8)';
+                            return gradient;
+                        }
+                    }
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            font: {
+                                family: 'Inter, system-ui, sans-serif',
+                                size: 14,
+                                weight: '600'
+                            },
+                            padding: 20,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            color: '#1F2937'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                        padding: 16,
+                        titleFont: {
+                            family: 'Inter, system-ui, sans-serif',
+                            size: 14,
+                            weight: '600'
+                        },
+                        bodyFont: {
+                            family: 'Inter, system-ui, sans-serif',
+                            size: 13
+                        },
+                        cornerRadius: 12,
+                        displayColors: false,
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                return tooltipItems[0].label;
+                            },
+                            label: function(context) {
+                                return `Employés en congé: ${context.raw}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Nombre d\'employés',
+                            font: {
+                                family: 'Inter, system-ui, sans-serif',
+                                size: 12,
+                                weight: '600'
+                            },
+                            padding: {top: 10, bottom: 10},
+                            color: '#1F2937'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false,
+                            lineWidth: 1
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Inter, system-ui, sans-serif',
+                                size: 12
+                            },
+                            padding: 10,
+                            stepSize: 1,
+                            precision: 0,
+                            color: '#6B7280'
+                        },
+                        border: {
+                            dash: [5, 5]
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Mois',
+                            font: {
+                                family: 'Inter, system-ui, sans-serif',
+                                size: 12,
+                                weight: '600'
+                            },
+                            padding: {top: 10, bottom: 10},
+                            color: '#1F2937'
+                        },
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Inter, system-ui, sans-serif',
+                                size: 12
+                            },
+                            padding: 10,
+                            maxRotation: 45,
+                            minRotation: 45,
+                            color: '#6B7280'
+                        },
+                        border: {
+                            dash: [5, 5]
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1500,
+                    easing: 'easeInOutQuart',
+                    onProgress: function(animation) {
+                        const progress = animation.currentStep / animation.numSteps;
+                        const ctx = animation.chart.ctx;
+                        const chartArea = animation.chart.chartArea;
+                        
+                        // Create gradient
+                        const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                        gradient.addColorStop(0, 'rgba(124, 58, 237, 0.1)');
+                        gradient.addColorStop(1, 'rgba(236, 72, 153, 0.1)');
+                        
+                        // Apply gradient to dataset
+                        animation.chart.data.datasets[0].backgroundColor = gradient;
+                    }
+                },
+                elements: {
+                    line: {
+                        tension: 0.4
+                    }
+                }
+            }
+        });
+
+        // Function to update chart data
+        async function updateChartData(month, year, viewType = 'daily') {
+            try {
+                console.log('Fetching data for month:', month, 'year:', year, 'viewType:', viewType);
+                const response = await fetch(`/api/effectif-evolution?month=${month}&year=${year}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                console.log('Received data:', data);
+
+                // Convert dates to month names
+                const monthNames = {
+                    '01': 'Janvier',
+                    '02': 'Février',
+                    '03': 'Mars',
+                    '04': 'Avril',
+                    '05': 'Mai',
+                    '06': 'Juin',
+                    '07': 'Juillet',
+                    '08': 'Août',
+                    '09': 'Septembre',
+                    '10': 'Octobre',
+                    '11': 'Novembre',
+                    '12': 'Décembre'
+                };
+
+                // Group data by month or day
+                const monthlyData = {};
+                const dailyData = {};
+                const weeklyData = {};
+                data.forEach(item => {
+                    const dateParts = item.date.split('/');
+                    const month = dateParts[1];
+                    const day = dateParts[0];
+                    const year = dateParts[2];
+                    
+                    // For monthly view
+                    if (!monthlyData[month]) {
+                        monthlyData[month] = 0;
+                    }
+                    monthlyData[month] += parseInt(item.count);
+
+                    // For daily view
+                    if (!dailyData[month]) {
+                        dailyData[month] = {};
+                    }
+                    if (!dailyData[month][day]) {
+                        dailyData[month][day] = 0;
+                    }
+                    dailyData[month][day] += parseInt(item.count);
+
+                    // For weekly view
+                    const date = new Date(year, month - 1, day);
+                    const weekNumber = Math.ceil((date.getDate() + date.getDay()) / 7);
+                    if (!weeklyData[month]) {
+                        weeklyData[month] = {};
+                    }
+                    if (!weeklyData[month][weekNumber]) {
+                        weeklyData[month][weekNumber] = 0;
+                    }
+                    weeklyData[month][weekNumber] += parseInt(item.count);
+                });
+
+                let labels, counts;
+                if (!month) {
+                    // Show all months
+                    labels = [];
+                    counts = [];
+                    for (let i = 1; i <= 12; i++) {
+                        const monthNum = String(i).padStart(2, '0');
+                        labels.push(monthNames[monthNum]);
+                        counts.push(monthlyData[monthNum] || 0);
+                    }
+                } else {
+                    const selectedMonth = String(month).padStart(2, '0');
+                    
+                    switch(viewType) {
+                        case 'daily':
+                            // Show days for the selected month
+                            const daysInMonth = new Date(2024, month, 0).getDate();
+                            labels = [];
+                            counts = [];
+                            for (let day = 1; day <= daysInMonth; day++) {
+                                const dayStr = String(day).padStart(2, '0');
+                                labels.push(dayStr);
+                                counts.push(dailyData[selectedMonth][dayStr] || 0);
+                            }
+                            break;
+                            
+                        case 'weekly':
+                            // Show weeks for the selected month
+                            labels = ['Semaine 1', 'Semaine 2', 'Semaine 3', 'Semaine 4', 'Semaine 5'];
+                            counts = [];
+                            for (let week = 1; week <= 5; week++) {
+                                counts.push(weeklyData[selectedMonth][week] || 0);
+                            }
+                            break;
+                            
+                        case 'monthly':
+                            // Show only the selected month
+                            labels = [monthNames[selectedMonth]];
+                            counts = [monthlyData[selectedMonth] || 0];
+                            break;
+                    }
+                }
+
+                // Update chart with new data
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = counts;
+                
+                // Update axis labels based on view
+                if (!month) {
+                    chart.options.scales.x.title.text = 'Mois';
+                } else {
+                    switch(viewType) {
+                        case 'daily':
+                            chart.options.scales.x.title.text = 'Jours';
+                            break;
+                        case 'weekly':
+                            chart.options.scales.x.title.text = 'Semaines';
+                            break;
+                        case 'monthly':
+                            chart.options.scales.x.title.text = 'Mois';
+                            break;
+                    }
+                }
+                
+                chart.update();
+                console.log('Chart updated with new data:', { labels, counts, monthlyData });
+            } catch (error) {
+                console.error('Error updating chart:', error);
+            }
+        }
+
+        // Initialize year select
+        async function initializeYearSelect() {
+            try {
+                const response = await fetch('/api/effectif-years');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const years = await response.json();
+                const yearSelect = document.getElementById('yearSelect');
+                
+                // Clear existing options
+                yearSelect.innerHTML = '<option value="">Toutes les années</option>';
+                
+                // Add options for each year
+                years.forEach(year => {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    yearSelect.appendChild(option);
+                });
+                
+                // Set current year as default
+                const currentYear = new Date().getFullYear();
+                yearSelect.value = currentYear;
+                
+                // Trigger initial data load
+                const monthSelect = document.getElementById('monthSelect');
+                const viewTypeSelect = document.getElementById('viewTypeSelect');
+                updateChartData(monthSelect.value, currentYear, viewTypeSelect.value);
+            } catch (error) {
+                console.error('Error initializing year select:', error);
+            }
+        }
+
+        // Add event listeners for filters
+        document.getElementById('monthSelect').addEventListener('change', function() {
+            const yearSelect = document.getElementById('yearSelect');
+            const viewTypeSelect = document.getElementById('viewTypeSelect');
+            updateChartData(this.value, yearSelect.value, viewTypeSelect.value);
+        });
+
+        document.getElementById('yearSelect').addEventListener('change', function() {
+            const monthSelect = document.getElementById('monthSelect');
+            const viewTypeSelect = document.getElementById('viewTypeSelect');
+            updateChartData(monthSelect.value, this.value, viewTypeSelect.value);
+        });
+
+        document.getElementById('viewTypeSelect').addEventListener('change', function() {
+            const monthSelect = document.getElementById('monthSelect');
+            const yearSelect = document.getElementById('yearSelect');
+            updateChartData(monthSelect.value, yearSelect.value, this.value);
+        });
+
+        // Initialize the chart
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1;
+        const currentYear = currentDate.getFullYear();
+        
+        // Set default to "All months"
+        document.getElementById('monthSelect').value = '';
+        await initializeYearSelect();
+      });
+  </script>
+
+  <!-- Then load our admin portal script -->
+  <script src="/js/admin-portal.js"></script>
+
+  <script>
+    // Immediate console log to verify script is running
+    console.log('Script starting...');
+
+    // Wait for DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM Content Loaded - checking elements...');
+
+      // Get DOM elements
+      const sousDirectionSelect = document.querySelector('#departments #sousDirectionSelect');
+      const searchInput = document.getElementById('searchEmployee');
+      const employeeRows = document.querySelectorAll('.employee-row');
+      const paginationContainer = document.querySelector('.pagination');
+      const itemsPerPage = 10; // Number of items to show per page
+      let currentPage = 1;
+
+      // Function to filter and display employees
+      function filterAndDisplayEmployees() {
+        const selectedSousDirection = sousDirectionSelect.value;
+        const searchTerm = searchInput.value.toLowerCase();
+        let visibleRows = 0;
+        let totalVisibleRows = 0;
+
+        // First pass: count total visible rows
+        employeeRows.forEach(row => {
+          const sousDirectionId = row.dataset.sousDirectionId;
+          const employeeName = row.dataset.nom.toLowerCase();
+          const employeeFunction = row.dataset.fonction.toLowerCase();
+          const employeeStatus = row.dataset.statut.toLowerCase();
+
+          const matchesSousDirection = !selectedSousDirection || sousDirectionId === selectedSousDirection;
+          const matchesSearch = !searchTerm || 
+            employeeName.includes(searchTerm) || 
+            employeeFunction.includes(searchTerm) || 
+            employeeStatus.includes(searchTerm);
+
+          if (matchesSousDirection && matchesSearch) {
+            totalVisibleRows++;
+          }
+        });
+
+        // Calculate total pages
+        const totalPages = Math.ceil(totalVisibleRows / itemsPerPage);
+
+        // Second pass: show/hide rows based on current page
+        employeeRows.forEach(row => {
+          const sousDirectionId = row.dataset.sousDirectionId;
+          const employeeName = row.dataset.nom.toLowerCase();
+          const employeeFunction = row.dataset.fonction.toLowerCase();
+          const employeeStatus = row.dataset.statut.toLowerCase();
+
+          const matchesSousDirection = !selectedSousDirection || sousDirectionId === selectedSousDirection;
+          const matchesSearch = !searchTerm || 
+            employeeName.includes(searchTerm) || 
+            employeeFunction.includes(searchTerm) || 
+            employeeStatus.includes(searchTerm);
+
+          if (matchesSousDirection && matchesSearch) {
+            visibleRows++;
+            if (visibleRows > (currentPage - 1) * itemsPerPage && 
+              visibleRows <= currentPage * itemsPerPage) {
+              row.style.display = '';
+            } else {
+              row.style.display = 'none';
+            }
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        // Update pagination
+        updatePagination(totalPages);
+      }
+
+      // Function to update pagination controls
+      function updatePagination(totalPages) {
+        const pageNumbers = paginationContainer.querySelector('.page-numbers');
+        const prevButton = paginationContainer.querySelector('.pagination-btn:first-child');
+        const nextButton = paginationContainer.querySelector('.pagination-btn:last-child');
+
+        // Update page numbers display
+        pageNumbers.innerHTML = `
+          <span class="current-page">${currentPage}</span>
+          <span>sur ${totalPages}</span>
+        `;
+
+        // Update button states
+        prevButton.disabled = currentPage === 1;
+        nextButton.disabled = currentPage === totalPages;
+
+        // Add event listeners to pagination buttons
+        prevButton.onclick = () => {
+          if (currentPage > 1) {
+            currentPage--;
+            filterAndDisplayEmployees();
+          }
+        };
+
+        nextButton.onclick = () => {
+          if (currentPage < totalPages) {
+            currentPage++;
+            filterAndDisplayEmployees();
+          }
+        };
+      }
+
+      // Add event listeners for filters
+      if (sousDirectionSelect) {
+        sousDirectionSelect.addEventListener('change', function() {
+          currentPage = 1; // Reset to first page when filter changes
+          filterAndDisplayEmployees();
+        });
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener('input', function() {
+          currentPage = 1; // Reset to first page when search changes
+          filterAndDisplayEmployees();
+        });
+      }
+
+      // Initial display
+      filterAndDisplayEmployees();
+    });
+  </script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Modal functionality
+      const rapportDetailsModal = document.getElementById('rapportDetailsModal');
+      const closeModalBtn = rapportDetailsModal.querySelector('.close-modal');
+      const viewButtons = document.querySelectorAll('.view-btnn');
+      const deleteButtons = document.querySelectorAll('.delete-btn');
+
+      // Function to show modal
+      function showModal() {
+        rapportDetailsModal.style.display = 'flex';
+        setTimeout(() => {
+          rapportDetailsModal.style.opacity = '1';
+          rapportDetailsModal.style.visibility = 'visible';
+        }, 10);
+      }
+
+      // Function to hide modal
+      function hideModal() {
+        rapportDetailsModal.style.opacity = '0';
+        rapportDetailsModal.style.visibility = 'hidden';
+        setTimeout(() => {
+          rapportDetailsModal.style.display = 'none';
+        }, 300);
+      }
+
+      // Close modal when clicking the close button
+      if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', hideModal);
+      }
+
+      // Close modal when clicking outside
+      rapportDetailsModal.addEventListener('click', function(e) {
+        if (e.target === rapportDetailsModal) {
+          hideModal();
+        }
+      });
+
+      // View button click handler
+      viewButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const historyItem = this.closest('.history-item');
+          const title = historyItem.querySelector('h4').textContent;
+          const date = historyItem.querySelector('.history-date').textContent;
+          const type = historyItem.querySelector('p').textContent;
+          const description = historyItem.querySelector('.description').textContent;
+
+          // Update modal content
+          document.getElementById('rapportTitle').textContent = title;
+          document.getElementById('rapportDate').textContent = date;
+          document.getElementById('rapportType').textContent = type;
+          document.getElementById('rapportDescription').textContent = description;
+
+          // Show modal
+          showModal();
+        });
+      });
+
+      // Delete button click handler
+      deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const historyItem = this.closest('.history-item');
+          const title = historyItem.querySelector('h4').textContent;
+          
+          // Show delete confirmation modal
+          const deleteModal = document.getElementById('deleteConfirmationModal');
+          const deleteText = document.getElementById('deleteConfirmationText');
+          deleteText.textContent = `Êtes-vous sûr de vouloir supprimer le rapport "${title}" ?`;
+          deleteModal.style.display = 'flex';
+        });
+      });
+
+      // Delete confirmation modal functionality
+      const deleteModal = document.getElementById('deleteConfirmationModal');
+      const closeDeleteModalBtn = document.getElementById('closeDeleteModalBtn');
+      const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+      const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+      function hideDeleteModal() {
+        deleteModal.style.display = 'none';
+      }
+
+      if (closeDeleteModalBtn) {
+        closeDeleteModalBtn.addEventListener('click', hideDeleteModal);
+      }
+
+      if (cancelDeleteBtn) {
+        cancelDeleteBtn.addEventListener('click', hideDeleteModal);
+      }
+
+      if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', function() {
+          // Add your delete logic here
+          hideDeleteModal();
+        });
+      }
+
+      // Close delete modal when clicking outside
+      deleteModal.addEventListener('click', function(e) {
+        if (e.target === deleteModal) {
+          hideDeleteModal();
+        }
+      });
+    });
+  </script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get DOM elements
+        const searchInput = document.getElementById('searchApprovedLeaves');
+        const documentStatusFilter = document.getElementById('documentStatusFilter');
+        const messageStatusFilter = document.getElementById('messageStatusFilter');
+        const tableRows = document.querySelectorAll('.approved-leaves-table tbody tr');
+
+        // Function to filter table rows
+        function filterTable() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const documentStatus = documentStatusFilter.value;
+            const messageStatus = messageStatusFilter.value;
+
+            tableRows.forEach(row => {
+                // Get row data
+                const employeeName = row.querySelector('.employee-info span').textContent.toLowerCase();
+                const documentCell = row.querySelector('td:nth-child(7)');
+                const messageCell = row.querySelector('td:nth-child(8)');
+                const hasDocument = documentCell.querySelector('.btn-download') !== null;
+                const hasMessage = messageCell && messageCell.querySelector('.btn-send.sent') !== null;
+
+                // Check if row matches search term
+                const matchesSearch = employeeName.includes(searchTerm);
+
+                // Check if row matches document status filter
+                let matchesDocumentStatus = true;
+                if (documentStatus === 'generated') {
+                    matchesDocumentStatus = hasDocument;
+                } else if (documentStatus === 'not-generated') {
+                    matchesDocumentStatus = !hasDocument;
+                }
+
+                // Check if row matches message status filter
+                let matchesMessageStatus = true;
+                if (messageStatus === 'sent') {
+                    matchesMessageStatus = hasMessage;
+                } else if (messageStatus === 'not-sent') {
+                    matchesMessageStatus = !hasMessage;
+                }
+
+                // Show/hide row based on filters
+                if (matchesSearch && matchesDocumentStatus && matchesMessageStatus) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Show "no results" message if no rows are visible
+            const visibleRows = Array.from(tableRows).filter(row => row.style.display !== 'none');
+            const noDataRow = document.querySelector('.approved-leaves-table tbody tr.no-data');
+            
+            if (visibleRows.length === 0) {
+                if (!noDataRow) {
+                    const tbody = document.querySelector('.approved-leaves-table tbody');
+                    const newNoDataRow = document.createElement('tr');
+                    newNoDataRow.className = 'no-data';
+                    newNoDataRow.innerHTML = `
+                        <td colspan="8">
+                            <i class="fas fa-search"></i>
+                            <p>Aucun résultat trouvé</p>
+                        </td>
+                    `;
+                    tbody.appendChild(newNoDataRow);
+                }
+            } else if (noDataRow) {
+                noDataRow.remove();
+            }
+        }
+
+        // Add event listeners
+        searchInput.addEventListener('input', filterTable);
+        documentStatusFilter.addEventListener('change', filterTable);
+        messageStatusFilter.addEventListener('change', filterTable);
+
+        // Initial filter
+        filterTable();
+    });
+</script>
+
+<script>
+    // Define all functions first
+    function showNotification(message, type = 'success') {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        
+        // Choose icon based on notification type
+        let icon;
+        switch(type) {
+            case 'success':
+                icon = 'fa-check-circle';
+                break;
+            case 'error':
+                icon = 'fa-exclamation-circle';
+                break;
+            case 'info':
+                icon = 'fa-info-circle';
+                break;
+            default:
+                icon = 'fa-info-circle';
+        }
+
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fas ${icon}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 5000);
+    }
+
+    async function generateDocument(requestId) {
+        const button = document.querySelector(`tr[data-request-id="${requestId}"] .btn-generate`);
+        if (!button) {
+            console.error('Button not found for request:', requestId);
+            return;
+        }
+        const originalText = button.innerHTML;
+        try {
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const response = await fetch(`/generate-document/${requestId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                showNotification('Document généré avec succès!', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+                return;
+            } else {
+                throw new Error(data.message || 'Erreur lors de la génération du document');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showNotification(error.message || 'Erreur lors de la génération du document', 'error');
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    }
+
+    async function generateAllDocuments() {
+        console.log('generateAllDocuments function called');
+        const button = document.getElementById('generateAllDocuments');
+        if (!button) {
+            console.error('Button not found');
+            return;
+        }
+
+        try {
+            console.log('Disabling button and showing loading state');
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
+
+            // Get all rows that need document generation
+            const rowsToGenerate = document.querySelectorAll('tr[data-request-id] .btn-generate');
+            if (rowsToGenerate.length === 0) {
+                showNotification('Aucun document à générer', 'info');
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-file-pdf"></i> Générer Tous les Documents';
+                return;
+            }
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            // Generate documents for each row
+            for (const generateButton of rowsToGenerate) {
+                const row = generateButton.closest('tr');
+                const requestId = row.dataset.requestId;
+                
+                try {
+                    const response = await fetch(`/generate-document/${requestId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        console.error(`Error generating document for request ${requestId}:`, data.message);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    console.error(`Error generating document for request ${requestId}:`, error);
+                }
+            }
+
+            // Show appropriate notification
+            if (successCount > 0) {
+                showNotification(`${successCount} document(s) généré(s) avec succès${errorCount > 0 ? `, ${errorCount} erreur(s)` : ''}`, 'success');
+            } else {
+                showNotification('Erreur lors de la génération des documents', 'error');
+            }
+
+            // Reload the page after a short delay to show updated document statuses
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+
+        } catch (error) {
+            console.error('Error in generateAllDocuments:', error);
+            showNotification('Erreur lors de la génération des documents', 'error');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-file-pdf"></i> Générer Tous les Documents';
+        }
+    }
+
+    function viewDocument(requestId) {
+        window.open(`/view-document/${requestId}`, '_blank');
+    }
+
+    // Make functions globally available
+    window.generateDocument = generateDocument;
+    window.generateAllDocuments = generateAllDocuments;
+    window.viewDocument = viewDocument;
+
+    // Add event listeners when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        const button = document.getElementById('generateAllDocuments');
+        if (button) {
+            console.log('Adding click event listener to button');
+            button.addEventListener('click', generateAllDocuments);
+        } else {
+            console.error('Button not found during DOMContentLoaded');
+        }
+
+        // Add event listeners for send document buttons
+        const sendButtons = document.querySelectorAll('.send-document-btn');
+        sendButtons.forEach(button => {
+            button.addEventListener('click', async function() {
+                const requestId = this.dataset.id;
+                const originalHTML = this.innerHTML;
+                
+                try {
+                    this.disabled = true;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    
+                    const response = await fetch(`/send-document/${requestId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showNotification('Document envoyé avec succès', 'success');
+                        this.classList.add('sent');
+                        this.innerHTML = '<i class="fas fa-check"></i>';
+                    } else {
+                        throw new Error(data.message || 'Erreur lors de l\'envoi du document');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showNotification(error.message || 'Erreur lors de l\'envoi du document', 'error');
+                    this.disabled = false;
+                    this.innerHTML = originalHTML;
+                }
+            });
+        });
+    });
+</script>
+
+<style>
+    /* Add these styles to your existing CSS */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        align-items: center;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 2000;
+        animation: slideIn 0.3s ease-out;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .notification.success {
+        background: #002B5C;
+        color: #ffffff;
+        border-left: 4px solid #E3001B;
+    }
+
+    .notification.error {
+        background: #E3001B;
+        color: #ffffff;
+        border-left: 4px solid #002B5C;
+    }
+
+    .notification.info {
+        background: #002B5C;
+        color: #ffffff;
+        border-left: 4px solid #E3001B;
+    }
+
+    .notification-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .notification-content i {
+        font-size: 1.2rem;
+    }
+
+    .notification-content span {
+        font-size: 0.95rem;
+        letter-spacing: 0.5px;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    .btn-generate {
+        transition: all 0.3s ease;
+    }
+
+    .btn-generate:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    .btn-generate i.fa-spinner {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .action-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+    }
+
+    .action-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .send-btn {
+        color: #007bff;
+    }
+
+    .send-btn:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    .view-btn {
+        color: #28a745;
+    }
+
+    .view-btn:hover {
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+
+    /* Add these styles to your existing CSS */
+    .view-btn.action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        padding: 8px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .view-btn.action-btn:hover {
+        background-color: rgba(224, 142, 152, 0.2);
+        box-shadow: 0 0 10px rgba(224, 142, 152, 0.2);
+       
+    }
+
+    .view-btn.action-btn i {
+        color: red;
+        font-size: 1.2rem;
+    }
+
+    td {
+        text-align: center;
+        vertical-align: middle;
+        letter-spacing: 0.5px;
+    }
+
+    .approved-leaves-table td {
+        padding: 15px 10px;
+        vertical-align: middle;
+        letter-spacing: 0.5px;
+    }
+
+    .approved-leaves-table th {
+        letter-spacing: 0.8px;
+        font-weight: 600;
+    }
+
+    .approved-leaves-table tr {
+        border-bottom: 1px solid rgba(227, 0, 27, 0.1);
+    }
+
+    .approved-leaves-table tr:hover {
+        background-color: rgba(227, 0, 27, 0.02);
+    }
+  </style>
+
+  <script>
+// ... existing code ...
+function viewDocument(requestId) {
+    window.open(`/view-document/${requestId}`, '_blank');
+}
+// ... existing code ...
+async function generateDocument(requestId) {
+    const button = document.querySelector(`tr[data-request-id="${requestId}"] .btn-generate`);
+    if (!button) {
+        console.error('Button not found for request:', requestId);
+        return;
+    }
+    const originalText = button.innerHTML;
+    try {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        const response = await fetch(`/generate-document/${requestId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await response.json();
+        if (data.success) {
+            showNotification('Document généré avec succès!', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+            return;
+        } else {
+            throw new Error(data.message || 'Erreur lors de la génération du document');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification(error.message || 'Erreur lors de la génération du document', 'error');
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
+}
+// ... existing code ...
+</script>
+
+<script>
+// ... existing code ...
+// Pagination for Approved Leaves Table
+    document.addEventListener('DOMContentLoaded', function() {
+        const itemsPerPage = 10;
+        let currentPage = 1;
+        const table = document.querySelector('.approved-leaves-table table');
+        const tbody = table.querySelector('tbody');
+        const allRows = Array.from(tbody.querySelectorAll('tr[data-request-id]'));
+        const prevBtn = document.getElementById('approvedLeavesPrevBtn');
+        const nextBtn = document.getElementById('approvedLeavesNextBtn');
+        const pageNumbers = document.getElementById('approvedLeavesPageNumbers');
+
+        function getVisibleRows() {
+            // Only rows that are not filtered out (display !== 'none')
+            return allRows.filter(row => row.style.display !== 'none');
+        }
+
+        function updatePagination() {
+            const visibleRows = getVisibleRows();
+            const totalRows = visibleRows.length;
+            const totalPages = Math.max(1, Math.ceil(totalRows / itemsPerPage));
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            // Hide all rows first
+            allRows.forEach(row => row.style.display = 'none');
+            // Show only rows for current page
+            visibleRows.forEach((row, idx) => {
+                if (idx >= (currentPage - 1) * itemsPerPage && idx < currentPage * itemsPerPage) {
+                    row.style.display = '';
+                }
+            });
+
+            // Update page numbers
+            pageNumbers.innerHTML = `<span class="current-page">${currentPage}</span><span>sur ${totalPages}</span>`;
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+        }
+
+        prevBtn.addEventListener('click', function() {
+            if (currentPage > 1) {
+                currentPage--;
+                updatePagination();
+            }
+        });
+        nextBtn.addEventListener('click', function() {
+            const visibleRows = getVisibleRows();
+            const totalPages = Math.max(1, Math.ceil(visibleRows.length / itemsPerPage));
+            if (currentPage < totalPages) {
+                currentPage++;
+                updatePagination();
+            }
+        });
+
+        // Integrate with search/filter
+        const searchInput = document.getElementById('searchApprovedLeaves');
+        const documentStatusFilter = document.getElementById('documentStatusFilter');
+        const messageStatusFilter = document.getElementById('messageStatusFilter');
+        function filterAndPaginate() {
+            // Re-apply filter logic from your filterTable function
+            const searchTerm = searchInput.value.toLowerCase();
+            const documentStatus = documentStatusFilter.value;
+            const messageStatus = messageStatusFilter.value;
+            allRows.forEach(row => {
+                const employeeName = row.querySelector('.employee-info span').textContent.toLowerCase();
+                const documentCell = row.querySelector('td:nth-child(7)');
+                const messageCell = row.querySelector('td:nth-child(8)');
+                const hasDocument = documentCell && documentCell.querySelector('.btn-download') !== null;
+                const hasMessage = messageCell && messageCell.querySelector('.btn-send.sent') !== null;
+                let matchesSearch = employeeName.includes(searchTerm);
+                let matchesDocumentStatus = true;
+                let matchesMessageStatus = true;
+                if (documentStatus === 'generated') {
+                    matchesDocumentStatus = hasDocument;
+                } else if (documentStatus === 'not-generated') {
+                    matchesDocumentStatus = !hasDocument;
+                }
+                if (messageStatus === 'sent') {
+                    matchesMessageStatus = hasMessage;
+                } else if (messageStatus === 'not-sent') {
+                    matchesMessageStatus = !hasMessage;
+                }
+                if (matchesSearch && matchesDocumentStatus && matchesMessageStatus) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            currentPage = 1;
+            updatePagination();
+        }
+        searchInput.addEventListener('input', filterAndPaginate);
+        documentStatusFilter.addEventListener('change', filterAndPaginate);
+        messageStatusFilter.addEventListener('change', filterAndPaginate);
+        // Initial pagination
+        updatePagination();
+    });
+// ... existing code ...
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get DOM elements for approved leaves table
+        const searchInput = document.getElementById('searchApprovedLeaves');
+        const documentStatusFilter = document.getElementById('documentStatusFilter');
+        const messageStatusFilter = document.getElementById('messageStatusFilter');
+        const approvedLeavesRows = document.querySelectorAll('.approved-leaves-table tbody tr[data-request-id]');
+        const approvedLeavesPagination = document.querySelector('.approved-leaves-pagination');
+        const itemsPerPage = 10;
+        let currentPage = 1;
+
+        // Function to filter and display approved leaves
+        function filterAndDisplayApprovedLeaves() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const documentStatus = documentStatusFilter.value;
+            const messageStatus = messageStatusFilter.value;
+            let visibleRows = 0;
+            let totalVisibleRows = 0;
+
+            // First pass: count total visible rows
+            approvedLeavesRows.forEach(row => {
+                const employeeName = row.querySelector('.employee-info span').textContent.toLowerCase();
+                const documentCell = row.querySelector('td:nth-child(6)');
+                const messageCell = row.querySelector('td:nth-child(7)');
+                const hasDocument = documentCell && documentCell.querySelector('.view-btn') !== null;
+                const hasMessage = messageCell && messageCell.querySelector('.btn-send.sent') !== null;
+
+                const matchesSearch = employeeName.includes(searchTerm);
+                let matchesDocumentStatus = true;
+                let matchesMessageStatus = true;
+
+                if (documentStatus === 'generated') {
+                    matchesDocumentStatus = hasDocument;
+                } else if (documentStatus === 'not-generated') {
+                    matchesDocumentStatus = !hasDocument;
+                }
+
+                if (messageStatus === 'sent') {
+                    matchesMessageStatus = hasMessage;
+                } else if (messageStatus === 'not-sent') {
+                    matchesMessageStatus = !hasMessage;
+                }
+
+                if (matchesSearch && matchesDocumentStatus && matchesMessageStatus) {
+                    totalVisibleRows++;
+                }
+            });
+
+            // Calculate total pages
+            const totalPages = Math.ceil(totalVisibleRows / itemsPerPage);
+
+            // Second pass: show/hide rows based on current page
+            approvedLeavesRows.forEach(row => {
+                const employeeName = row.querySelector('.employee-info span').textContent.toLowerCase();
+                const documentCell = row.querySelector('td:nth-child(6)');
+                const messageCell = row.querySelector('td:nth-child(7)');
+                const hasDocument = documentCell && documentCell.querySelector('.view-btn') !== null;
+                const hasMessage = messageCell && messageCell.querySelector('.btn-send.sent') !== null;
+
+                const matchesSearch = employeeName.includes(searchTerm);
+                let matchesDocumentStatus = true;
+                let matchesMessageStatus = true;
+
+                if (documentStatus === 'generated') {
+                    matchesDocumentStatus = hasDocument;
+                } else if (documentStatus === 'not-generated') {
+                    matchesDocumentStatus = !hasDocument;
+                }
+
+                if (messageStatus === 'sent') {
+                    matchesMessageStatus = hasMessage;
+                } else if (messageStatus === 'not-sent') {
+                    matchesMessageStatus = !hasMessage;
+                }
+
+                if (matchesSearch && matchesDocumentStatus && matchesMessageStatus) {
+                    visibleRows++;
+                    if (visibleRows > (currentPage - 1) * itemsPerPage && 
+                        visibleRows <= currentPage * itemsPerPage) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Update pagination
+            updateApprovedLeavesPagination(totalPages);
+        }
+
+        // Function to update pagination controls
+        function updateApprovedLeavesPagination(totalPages) {
+            const pageNumbers = approvedLeavesPagination.querySelector('.page-numbers');
+            const prevButton = approvedLeavesPagination.querySelector('.pagination-btn:first-child');
+            const nextButton = approvedLeavesPagination.querySelector('.pagination-btn:last-child');
+
+            // Update page numbers display
+            pageNumbers.innerHTML = `
+                <span class="current-page">${currentPage}</span>
+                <span>sur ${totalPages}</span>
+            `;
+
+            // Update button states
+            prevButton.disabled = currentPage === 1;
+            nextButton.disabled = currentPage === totalPages;
+
+            // Add event listeners to pagination buttons
+            prevButton.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    filterAndDisplayApprovedLeaves();
+                }
+            };
+
+            nextButton.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    filterAndDisplayApprovedLeaves();
+                }
+            };
+        }
+
+        // Add event listeners for filters
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                currentPage = 1; // Reset to first page when search changes
+                filterAndDisplayApprovedLeaves();
+            });
+        }
+
+        if (documentStatusFilter) {
+            documentStatusFilter.addEventListener('change', function() {
+                currentPage = 1; // Reset to first page when filter changes
+                filterAndDisplayApprovedLeaves();
+            });
+        }
+
+        if (messageStatusFilter) {
+            messageStatusFilter.addEventListener('change', function() {
+                currentPage = 1; // Reset to first page when filter changes
+                filterAndDisplayApprovedLeaves();
+            });
+        }
+
+        // Initial display
+        filterAndDisplayApprovedLeaves();
+    });
+</script>
+
+<!-- Add this script at the end of your file, before </body> -->
+<script>
+    // Notification System
+    class NotificationSystem {
+        constructor() {
+            this.notificationBtn = document.querySelector('.notification-btn');
+            this.notificationPopup = document.querySelector('.notification-popup');
+            this.notificationList = document.querySelector('.notification-list');
+            this.notificationBadge = document.querySelector('.notification-badge');
+            this.clearButton = document.querySelector('.clear-notifications');
+            this.notifications = [];
+            this.unreadCount = 0;
+
+            this.initializeEventListeners();
+            this.initializeWebSocket();
+        }
+
+        initializeEventListeners() {
+            // Toggle notification popup
+            this.notificationBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleNotificationPopup();
+            });
+
+            // Close popup when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!this.notificationPopup.contains(e.target) && 
+                    !this.notificationBtn.contains(e.target)) {
+                    this.notificationPopup.classList.remove('active');
+                }
+            });
+
+            // Clear all notifications
+            this.clearButton.addEventListener('click', () => {
+                this.clearAllNotifications();
+            });
+        }
+
+        initializeWebSocket() {
+            // Initialize WebSocket connection
+            const ws = new WebSocket(`ws://${window.location.host}/ws`);
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'new_approved_leave') {
+                    this.addNotification({
+                        id: Date.now(),
+                        type: 'approved_leave',
+                        title: 'Nouvelle demande approuvée',
+                        message: `La demande de congé de ${data.employeeName} a été approuvée`,
+                        time: new Date(),
+                        unread: true
+                    });
+                }
+            };
+
+            ws.onclose = () => {
+                // Attempt to reconnect after 5 seconds
+                setTimeout(() => this.initializeWebSocket(), 5000);
+            };
+        }
+
+        toggleNotificationPopup() {
+            this.notificationPopup.classList.toggle('active');
+            if (this.notificationPopup.classList.contains('active')) {
+                this.markAllAsRead();
+            }
+        }
+
+        addNotification(notification) {
+            this.notifications.unshift(notification);
+            if (notification.unread) {
+                this.unreadCount++;
+                this.updateBadge();
+            }
+            this.renderNotifications();
+            this.showNotificationToast(notification);
+        }
+
+        renderNotifications() {
+            if (this.notifications.length === 0) {
+                this.notificationList.innerHTML = `
+                    <div class="notification-empty">
+                        <i class="fas fa-bell-slash"></i>
+                        <p>Aucune notification</p>
+                    </div>
+                `;
+                return;
+            }
+
+            this.notificationList.innerHTML = this.notifications.map(notification => `
+                <div class="notification-item ${notification.unread ? 'unread' : ''}" data-id="${notification.id}">
+                    <div class="notification-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-title">${notification.title}</div>
+                        <div class="notification-message">${notification.message}</div>
+                        <div class="notification-time">${this.formatTime(notification.time)}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Add click handlers for notification items
+            this.notificationList.querySelectorAll('.notification-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const notificationId = parseInt(item.dataset.id);
+                    this.markAsRead(notificationId);
+                    // Navigate to approved leaves section
+                    document.querySelector('a[data-section="approved-leaves"]').click();
+                });
+            });
+        }
+
+        markAsRead(notificationId) {
+            const notification = this.notifications.find(n => n.id === notificationId);
+            if (notification && notification.unread) {
+                notification.unread = false;
+                this.unreadCount--;
+                this.updateBadge();
+                this.renderNotifications();
+            }
+        }
+
+        markAllAsRead() {
+            this.notifications.forEach(notification => {
+                notification.unread = false;
+            });
+            this.unreadCount = 0;
+            this.updateBadge();
+            this.renderNotifications();
+        }
+
+        clearAllNotifications() {
+            this.notifications = [];
+            this.unreadCount = 0;
+            this.updateBadge();
+            this.renderNotifications();
+        }
+
+        updateBadge() {
+            if (this.unreadCount > 0) {
+                this.notificationBadge.textContent = this.unreadCount;
+                this.notificationBadge.style.display = 'flex';
+            } else {
+                this.notificationBadge.style.display = 'none';
+            }
+        }
+
+        formatTime(date) {
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) { // Less than 1 minute
+                return 'À l\'instant';
+            } else if (diff < 3600000) { // Less than 1 hour
+                const minutes = Math.floor(diff / 60000);
+                return `Il y a ${minutes} minute${minutes > 1 ? 's' : ''}`;
+            } else if (diff < 86400000) { // Less than 1 day
+                const hours = Math.floor(diff / 3600000);
+                return `Il y a ${hours} heure${hours > 1 ? 's' : ''}`;
+            } else {
+                return date.toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+        }
+
+        showNotificationToast(notification) {
+            const toast = document.createElement('div');
+            toast.className = 'notification-toast';
+            toast.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas fa-file-alt"></i>
+                    <span>${notification.message}</span>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+    }
+
+    // Initialize notification system when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        window.notificationSystem = new NotificationSystem();
+    });
+</script>
+
+<style>
+    /* Add these styles for the notification toast */
+    .notification-toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #002B5C;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 2000;
+        transform: translateX(120%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-left: 4px solid #E3001B;
+    }
+
+    .notification-toast.show {
+        transform: translateX(0);
+    }
+
+    .notification-toast .notification-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .notification-toast i {
+        font-size: 1.2rem;
+        color: #E3001B;
+    }
+
+    .notification-toast span {
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+</style>
+
+<!-- Add this JavaScript at the bottom of the file -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle send document button clicks
+    document.querySelectorAll('.send-document-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const requestId = this.getAttribute('data-id');
+            
+            try {
+                const response = await fetch(`/send-document/${requestId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Show success notification
+                    const notification = document.createElement('div');
+                    notification.className = 'notification success';
+                    notification.innerHTML = `
+                        <div class="notification-content">
+                            <i class="fas fa-check-circle"></i>
+                            <span>${data.message}</span>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(notification);
+                    
+                    // Show notification
+                    setTimeout(() => {
+                        notification.classList.add('show');
+                    }, 100);
+                    
+                    // Remove notification after 3 seconds
+                    setTimeout(() => {
+                        notification.classList.remove('show');
+                        setTimeout(() => notification.remove(), 300);
+                    }, 3000);
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                console.error('Error sending document:', error);
+                // Show error notification
+                const notification = document.createElement('div');
+                notification.className = 'notification error';
+                notification.innerHTML = `
+                    <div class="notification-content">
+                        <i class="fas fa-times-circle"></i>
+                        <span>${error.message || 'Erreur lors de l\'envoi du document'}</span>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Show notification
+                setTimeout(() => {
+                    notification.classList.add('show');
+                }, 100);
+                
+                // Remove notification after 3 seconds
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+        });
+    });
+});
+</script>
+
+<style>
+/* Add styles for the send button */
+.send-document-btn {
+    background: none;
+    border: none;
+    color: #4CAF50;
+    cursor: pointer;
+    padding: 5px;
+    transition: transform 0.2s;
+}
+
+.send-document-btn:hover {
+    transform: scale(1.1);
+}
+
+/* Notification styles */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 5px;
+    background: white;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    transform: translateX(120%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 1000;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification.success {
+    border-left: 4px solid #4CAF50;
+}
+
+.notification.error {
+    border-left: 4px solid #f44336;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.notification i {
+    font-size: 1.2em;
+}
+
+.notification.success i {
+    color: #4CAF50;
+}
+
+.notification.error i {
+    color: #f44336;
+}
+</style>
+</body>
+</html>

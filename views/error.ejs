@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erreur</title>
+    <link rel="stylesheet" href="/css/error.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+
+        .error-container {
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+        }
+
+        .error-content {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .error-icon {
+            font-size: 72px;
+            color: #E3001B;
+            margin-bottom: 10px;
+        }
+
+        .error-title {
+            color: #002B5C;
+            font-size: 28px;
+            font-weight: 600;
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        .error-details {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.5;
+            margin: 0;
+            max-width: 400px;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            background-color: #002B5C;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .back-button:hover {
+            background-color: #E3001B;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-button i {
+            font-size: 18px;
+        }
+
+        @media (max-width: 480px) {
+            .error-container {
+                padding: 15px;
+            }
+            
+            .error-content {
+                padding: 30px 20px;
+            }
+
+            .error-title {
+                font-size: 24px;
+            }
+
+            .error-details {
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-content">
+            <i class="fas fa-exclamation-circle error-icon"></i>
+            <h1 class="error-title"><%= message %></h1>
+            <% if (typeof details !== 'undefined') { %>
+                <p class="error-details"><%= details %></p>
+            <% } %>
+            <a href="/administration-portal" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+                Retour au portail
+            </a>
+        </div>
+    </div>
+</body>
+</html> 
